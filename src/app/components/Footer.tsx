@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Instagram } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -81,11 +81,21 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <Mail className="w-4 h-4 mt-1 flex-shrink-0" />
-                <span className="text-gray-300">contacto@urpprintstudio.com</span>
+                <a
+                  href="mailto:madebyurp@gmail.com"
+                  className="text-gray-300 hover:text-white transition-colors"
+                >
+                  madebyurp@gmail.com
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="w-4 h-4 mt-1 flex-shrink-0" />
-                <span className="text-gray-300">+51 999 888 777</span>
+                <a
+                  href="tel:+51936251979"
+                  className="text-gray-300 hover:text-white transition-colors"
+                >
+                  +51 936 251 979
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
@@ -100,32 +110,22 @@ export function Footer() {
               <h4 className="font-semibold mb-3">Síguenos</h4>
               <div className="flex gap-3">
                 <a
-                  href="#"
+                  href="https://www.facebook.com/MadeByUrp"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="Facebook"
+                  aria-label="Facebook MadeBy Urp"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
                 <a
-                  href="#"
+                  href="https://www.instagram.com/madebyurp/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="Instagram"
+                  aria-label="Instagram @madebyurp"
                 >
                   <Instagram className="w-4 h-4" />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="w-4 h-4" />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="w-4 h-4" />
                 </a>
               </div>
             </div>
