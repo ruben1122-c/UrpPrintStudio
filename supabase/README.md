@@ -13,11 +13,13 @@
    - `order_items`
    - `payments`
    - `contact_messages`
-7. Confirm the `products` table has the six seed products.
-8. Apply future updates from `supabase/schema.sql` when the frontend data flow changes, including RPC functions such as `create_guest_order`.
+7. Confirm the function `create_checkout_order` exists under Database > Functions.
+8. Confirm the `products` table has the six seed products.
 9. In the frontend, use only:
    - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 Never expose the Supabase secret key in the React app.
 
+The frontend creates orders through `create_checkout_order`, not through direct
+inserts into `designs`, `orders`, and `order_items`.

@@ -9,6 +9,7 @@ export function Header() {
     { name: 'Inicio', href: '#inicio' },
     { name: 'Crear diseño', href: '#personalizar' },
     { name: 'Productos', href: '#productos' },
+    { name: 'Cuenta', href: '#cuenta' },
     { name: 'Cómo funciona', href: '#como-funciona' },
     { name: 'Contacto', href: '#contacto' },
   ];
@@ -45,9 +46,11 @@ export function Header() {
 
           {/* Login Button */}
           <div className="hidden md:flex items-center">
-            <Button className="bg-[#1b4332] hover:bg-[#2d6a4f]">
-              <User className="mr-2 h-4 w-4" />
-              Iniciar sesión
+            <Button className="bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
+              <a href="#cuenta">
+                <User className="mr-2 h-4 w-4" />
+                Iniciar sesión
+              </a>
             </Button>
           </div>
 
@@ -77,9 +80,11 @@ export function Header() {
                 {item.name}
               </a>
             ))}
-            <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]">
+            <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
+              <a href="#cuenta" onClick={() => setIsMenuOpen(false)}>
               <User className="mr-2 h-4 w-4" />
               Iniciar sesión
+              </a>
             </Button>
           </div>
         )}

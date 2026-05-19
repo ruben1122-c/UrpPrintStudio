@@ -4,27 +4,20 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { createGuestOrder } from '@/services/checkout';
-import {
-  getFirstActiveProduct,
-  getFirstTemplateForProduct,
-  getProductById,
-} from '@/services/products';
+import { createCheckoutOrder } from '@/services/orders';
+import { getFirstActiveProduct, getFirstTemplateForProduct, getProductById } from '@/services/products';
 
 type CustomizationSectionProps = {
   selectedProductId: string | null;
 };
 
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function CustomizationSection({
-  selectedProductId,
-}: CustomizationSectionProps) {
+export function CustomizationSection({ selectedProductId }: CustomizationSectionProps) {
   const [customData, setCustomData] = useState({
     nombre: '',
     carrera: '',
-    ano: '',
+    año: '',
     email: '',
     telefono: '',
     cantidad: '1',
@@ -36,19 +29,13 @@ export function CustomizationSection({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
-    if (!file) {
-      return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomData({ ...customData, foto: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCustomData((current) => ({
-        ...current,
-        foto: reader.result as string,
-      }));
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleOrderPrint = async () => {
@@ -63,52 +50,48 @@ export function CustomizationSection({
     setIsSubmitting(true);
 
     try {
-      const selectedProduct =
-        selectedProductId && uuidPattern.test(selectedProductId)
-          ? await getProductById(selectedProductId)
-          : null;
-      const product = selectedProduct ?? (await getFirstActiveProduct());
+      const selectedProduct = selectedProductId && uuidPattern.test(selectedProductId)
+        ? await getProductById(selectedProductId)
+        : null;
+      const product = selectedProduct ?? await getFirstActiveProduct();
 
       if (!product) {
-        throw new Error(
-          'No hay productos activos en Supabase. Ejecuta primero el script schema.sql.',
-        );
+        throw new Error('No hay productos activos en Supabase. Ejecuta primero el script schema.sql.');
       }
 
       const template = await getFirstTemplateForProduct(product.id);
       const quantity = Math.max(1, Number.parseInt(customData.cantidad, 10) || 1);
-      const graduationYear = customData.ano
-        ? Number.parseInt(customData.ano, 10)
+      const graduationYear = customData.año
+        ? Number.parseInt(customData.año, 10)
         : null;
 
-      const order = await createGuestOrder({
-        productId: product.id,
-        templateId: template?.id ?? null,
-        customerName: customData.nombre.trim(),
-        customerEmail: customData.email.trim(),
-        customerPhone: customData.telefono.trim() || null,
-        customerCareer: customData.carrera.trim() || null,
-        graduationYear,
+      const order = await createCheckoutOrder({
+        product_id: product.id,
+        template_id: template?.id ?? null,
+        customer_name: customData.nombre.trim(),
+        customer_email: customData.email.trim(),
+        customer_phone: customData.telefono.trim() || null,
+        customer_career: customData.carrera.trim() || null,
+        graduation_year: graduationYear,
         quantity,
-        notes: `Pedido creado desde el editor web para ${product.name}.`,
-        canvasData: {
+        canvas_data: {
           source: 'web-editor',
           product_slug: product.slug,
+          template_slug: template?.slug ?? null,
           fields: {
             nombre: customData.nombre,
             carrera: customData.carrera,
-            ano: customData.ano,
+            año: customData.año,
             hasPhotoPreview: Boolean(customData.foto),
           },
         },
+        notes: `Pedido creado desde el editor web para ${product.name}.`,
       });
 
-      setSubmitMessage(
-        `Pedido ${order.order_code} creado correctamente. Traza: ${order.trace_id}`,
-      );
+      setSubmitMessage(`Pedido ${order.order_code} creado correctamente. Total: S/. ${order.total_amount.toFixed(2)}.`);
+      window.dispatchEvent(new CustomEvent('urp:orders-changed'));
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'No se pudo crear el pedido.';
+      const message = error instanceof Error ? error.message : 'No se pudo crear el pedido.';
       setSubmitError(message);
     } finally {
       setIsSubmitting(false);
@@ -118,32 +101,33 @@ export function CustomizationSection({
   return (
     <section id="personalizar" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
             <Sparkles className="w-4 h-4 text-[#1b4332]" />
-            <span className="text-sm font-semibold text-[#1b4332]">
-              Editor en tiempo real
-            </span>
+            <span className="text-sm font-semibold text-[#1b4332]">Editor en tiempo real</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Personaliza tu diseno
+            Personaliza tu Diseño
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Agrega tu informacion y observa el resultado en tiempo real
+            Agrega tu información y observa el resultado en tiempo real
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
+          {/* Form Section */}
           <Card className="p-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">
-              Informacion del diseno
+              Información del diseño
             </h3>
             <div className="space-y-6">
+              {/* Nombre */}
               <div>
                 <Label htmlFor="nombre">Nombre completo</Label>
                 <Input
                   id="nombre"
-                  placeholder="Ej: Juan Perez Garcia"
+                  placeholder="Ej: Juan Pérez García"
                   value={customData.nombre}
                   onChange={(e) =>
                     setCustomData({ ...customData, nombre: e.target.value })
@@ -166,11 +150,12 @@ export function CustomizationSection({
                 />
               </div>
 
+              {/* Carrera */}
               <div>
                 <Label htmlFor="carrera">Carrera</Label>
                 <Input
                   id="carrera"
-                  placeholder="Ej: Ingenieria de Sistemas"
+                  placeholder="Ej: Ingeniería de Sistemas"
                   value={customData.carrera}
                   onChange={(e) =>
                     setCustomData({ ...customData, carrera: e.target.value })
@@ -181,7 +166,7 @@ export function CustomizationSection({
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="telefono">Telefono</Label>
+                  <Label htmlFor="telefono">Teléfono</Label>
                   <Input
                     id="telefono"
                     placeholder="Ej: 999 888 777"
@@ -207,19 +192,21 @@ export function CustomizationSection({
                 </div>
               </div>
 
+              {/* Año */}
               <div>
-                <Label htmlFor="ano">Ano de graduacion</Label>
+                <Label htmlFor="año">Año de graduación</Label>
                 <Input
-                  id="ano"
+                  id="año"
                   placeholder="Ej: 2026"
-                  value={customData.ano}
+                  value={customData.año}
                   onChange={(e) =>
-                    setCustomData({ ...customData, ano: e.target.value })
+                    setCustomData({ ...customData, año: e.target.value })
                   }
                   className="mt-2"
                 />
               </div>
 
+              {/* Foto Upload */}
               <div>
                 <Label htmlFor="foto">Foto (opcional)</Label>
                 <div className="mt-2">
@@ -252,10 +239,11 @@ export function CustomizationSection({
                 </div>
               </div>
 
+              {/* Actions */}
               <div className="pt-4 space-y-3">
                 <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]">
                   <Download className="mr-2 h-4 w-4" />
-                  Descargar diseno
+                  Descargar diseño
                 </Button>
                 <Button
                   variant="outline"
@@ -263,7 +251,7 @@ export function CustomizationSection({
                   disabled={isSubmitting}
                   onClick={handleOrderPrint}
                 >
-                  {isSubmitting ? 'Creando pedido...' : 'Ordenar impresion'}
+                  {isSubmitting ? 'Creando pedido...' : 'Ordenar impresión'}
                 </Button>
                 {submitMessage && (
                   <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
@@ -280,32 +268,31 @@ export function CustomizationSection({
             </div>
           </Card>
 
+          {/* Preview Section */}
           <Card className="p-8 bg-gradient-to-br from-gray-50 to-gray-100">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">
               Vista previa
             </h3>
             <div className="bg-white rounded-lg shadow-lg p-8 min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden">
+              {/* Background Pattern */}
               <div className="absolute inset-0 opacity-5">
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage:
-                      'repeating-linear-gradient(45deg, #1b4332 0, #1b4332 1px, transparent 0, transparent 50%)',
-                    backgroundSize: '10px 10px',
-                  }}
-                />
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `repeating-linear-gradient(45deg, #1b4332 0, #1b4332 1px, transparent 0, transparent 50%)`,
+                  backgroundSize: '10px 10px',
+                }}></div>
               </div>
 
+              {/* Content Preview */}
               <div className="relative z-10 text-center space-y-6 w-full">
+                {/* Logo/Header */}
                 <div className="mb-8">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-full mx-auto flex items-center justify-center mb-4">
                     <span className="text-white font-bold text-2xl">URP</span>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    Universidad Ricardo Palma
-                  </div>
+                  <div className="text-sm text-gray-500">Universidad Ricardo Palma</div>
                 </div>
 
+                {/* Photo */}
                 {customData.foto && (
                   <div className="mb-6">
                     <img
@@ -316,33 +303,37 @@ export function CustomizationSection({
                   </div>
                 )}
 
+                {/* Name */}
                 <div>
                   <div className="text-3xl font-bold text-[#1b4332] mb-2">
-                    {customData.nombre || 'Tu nombre aqui'}
+                    {customData.nombre || 'Tu nombre aquí'}
                   </div>
                 </div>
 
+                {/* Career */}
                 <div>
                   <div className="text-xl text-gray-700">
                     {customData.carrera || 'Tu carrera'}
                   </div>
                 </div>
 
+                {/* Year */}
                 <div>
                   <div className="inline-block px-6 py-2 bg-[#1b4332] text-white rounded-full font-bold">
-                    {customData.ano || '20XX'}
+                    {customData.año || '20XX'}
                   </div>
                 </div>
 
+                {/* Decorative Element */}
                 <div className="pt-8 border-t border-gray-200 mt-8">
                   <div className="text-xs text-gray-400 uppercase tracking-wider">
-                    Disenado con URP PrintStudio
+                    Diseñado con URP PrintStudio
                   </div>
                 </div>
               </div>
             </div>
             <p className="text-sm text-gray-500 mt-4 text-center">
-              El diseno se actualiza automaticamente mientras escribes
+              ✨ El diseño se actualiza automáticamente mientras escribes
             </p>
           </Card>
         </div>

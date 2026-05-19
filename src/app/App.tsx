@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { ProductsSection } from './components/ProductsSection';
 import { CustomizationSection } from './components/CustomizationSection';
+import { AuthSection } from './components/AuthSection';
 import { BenefitsSection } from './components/BenefitsSection';
 import { HowItWorksSection } from './components/HowItWorksSection';
 import { Footer } from './components/Footer';
@@ -20,6 +21,7 @@ export default function App() {
           onSelectProduct={setSelectedProductId}
         />
         <CustomizationSection selectedProductId={selectedProductId} />
+        <AuthSection />
         <BenefitsSection />
         <HowItWorksSection />
       </main>
