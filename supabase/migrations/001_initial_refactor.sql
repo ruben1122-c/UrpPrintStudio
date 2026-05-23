@@ -321,20 +321,106 @@ as $$
   );
 $$;
 
-create or replace function public.handle_new_user()
-returns trigger
+create or replace function public.create_my_profile(
+  p_full_name text default null,
+  p_phone text default null,
+  p_university_code text default null,
+  p_career text default null,
+  p_avatar_url text default null
+)
+returns table (
+  id uuid,
+  email text,
+  full_name text,
+  phone text,
+  university_code text,
+  career text,
+  role public.app_role,
+  avatar_url text
+)
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  current_user_id uuid := auth.uid();
+  current_email text;
+begin
+  if current_user_id is null then
+    raise exception 'auth_required';
+  end if;
+
+  current_email := coalesce(
+    auth.jwt()->>'email',
+    (select u.email from auth.users u where u.id = current_user_id)
+  );
+
+  if current_email is null or position('@' in current_email) <= 1 then
+    raise exception 'auth_email_required';
+  end if;
+
+  insert into public.profiles (
+    id,
+    email,
+    full_name,
+    phone,
+    university_code,
+    career,
+    role,
+    avatar_url
+  )
+  values (
+    current_user_id,
+    current_email,
+    nullif(trim(coalesce(p_full_name, '')), ''),
+    nullif(trim(coalesce(p_phone, '')), ''),
+    nullif(trim(coalesce(p_university_code, '')), ''),
+    nullif(trim(coalesce(p_career, '')), ''),
+    'customer',
+    nullif(trim(coalesce(p_avatar_url, '')), '')
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = coalesce(excluded.full_name, public.profiles.full_name),
+    phone = coalesce(excluded.phone, public.profiles.phone),
+    university_code = coalesce(excluded.university_code, public.profiles.university_code),
+    career = coalesce(excluded.career, public.profiles.career),
+    avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url),
+    updated_at = now();
+
+  return query
+  select
+    p.id,
+    p.email,
+    p.full_name,
+    p.phone,
+    p.university_code,
+    p.career,
+    p.role,
+    p.avatar_url
+  from public.profiles p
+  where p.id = current_user_id;
+end;
+$$;
+
+create or replace function public.backfill_profiles_from_auth()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  affected_count integer;
 begin
   insert into public.profiles (id, email, full_name, avatar_url)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'),
-    new.raw_user_meta_data->>'avatar_url'
-  )
+  select
+    u.id,
+    u.email,
+    coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name'),
+    u.raw_user_meta_data->>'avatar_url'
+  from auth.users u
+  where u.email is not null
   on conflict (id) do update
   set
     email = excluded.email,
@@ -342,22 +428,8 @@ begin
     avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
     updated_at = now();
 
-  return new;
-end;
-$$;
-
-create or replace function public.prevent_profile_role_escalation()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if old.role is distinct from new.role and not public.is_admin() then
-    raise exception 'only_admin_can_change_profile_role';
-  end if;
-
-  return new;
+  get diagnostics affected_count = row_count;
+  return affected_count;
 end;
 $$;
 
@@ -378,25 +450,6 @@ begin
   end loop;
 
   return next_code;
-end;
-$$;
-
-create or replace function public.log_order_status_change()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if tg_op = 'INSERT' then
-    insert into public.order_status_history (order_id, old_status, new_status, changed_by)
-    values (new.id, null, new.status, auth.uid());
-  elsif old.status is distinct from new.status then
-    insert into public.order_status_history (order_id, old_status, new_status, changed_by)
-    values (new.id, old.status, new.status, auth.uid());
-  end if;
-
-  return new;
 end;
 $$;
 
@@ -427,44 +480,6 @@ begin
     commission_amount = round(next_subtotal * coalesce(next_commission_rate, 0) / 100, 2),
     updated_at = now()
   where id = target_order_id;
-end;
-$$;
-
-create or replace function public.sync_order_totals_from_items()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if tg_op = 'DELETE' then
-    perform public.refresh_order_totals(old.order_id);
-    return old;
-  end if;
-
-  perform public.refresh_order_totals(new.order_id);
-
-  if tg_op = 'UPDATE' and old.order_id is distinct from new.order_id then
-    perform public.refresh_order_totals(old.order_id);
-  end if;
-
-  return new;
-end;
-$$;
-
-create or replace function public.mark_design_as_ordered()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  update public.designs
-  set status = 'ordered', updated_at = now()
-  where id = new.design_id
-    and status <> 'ordered';
-
-  return new;
 end;
 $$;
 
@@ -503,6 +518,7 @@ declare
   selected_template_id uuid;
   clean_quantity integer;
   clean_delivery_amount numeric(10, 2);
+  next_subtotal numeric(10, 2);
 begin
   if p_customer_name is null or length(trim(p_customer_name)) = 0 then
     raise exception 'customer_name_required';
@@ -553,6 +569,7 @@ begin
   next_design_id := gen_random_uuid();
   next_order_id := gen_random_uuid();
   next_order_code := public.generate_order_code();
+  next_subtotal := round(selected_product.base_price * clean_quantity, 2);
 
   insert into public.designs (
     id,
@@ -571,7 +588,7 @@ begin
     current_user_id,
     selected_product.id,
     selected_template_id,
-    'saved',
+    'ordered',
     case when current_user_id is null then trim(p_customer_email) else null end,
     trim(p_customer_name),
     nullif(trim(coalesce(p_customer_career, '')), ''),
@@ -587,6 +604,8 @@ begin
     payment_status,
     payment_method,
     delivery_method,
+    subtotal,
+    commission_amount,
     delivery_amount,
     customer_name,
     customer_email,
@@ -603,6 +622,8 @@ begin
     'pending',
     'none',
     coalesce(p_delivery_method, 'pickup'),
+    next_subtotal,
+    0,
     clean_delivery_amount,
     trim(p_customer_name),
     trim(p_customer_email),
@@ -628,6 +649,9 @@ begin
     clean_quantity,
     selected_product.base_price
   );
+
+  insert into public.order_status_history (order_id, old_status, new_status, changed_by, note)
+  values (next_order_id, null, 'pending', current_user_id, 'Pedido creado desde checkout.');
 
   return query
   select
@@ -657,14 +681,20 @@ grant execute on function public.create_checkout_order(
   text
 ) to anon, authenticated;
 
+grant execute on function public.create_my_profile(
+  text,
+  text,
+  text,
+  text,
+  text
+) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Triggers
 -- ---------------------------------------------------------------------------
 
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-after insert on auth.users
-for each row execute function public.handle_new_user();
+drop function if exists public.handle_new_user();
 
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
@@ -672,9 +702,7 @@ before update on public.profiles
 for each row execute function public.set_updated_at();
 
 drop trigger if exists prevent_profile_role_escalation on public.profiles;
-create trigger prevent_profile_role_escalation
-before update on public.profiles
-for each row execute function public.prevent_profile_role_escalation();
+drop function if exists public.prevent_profile_role_escalation();
 
 drop trigger if exists set_product_categories_updated_at on public.product_categories;
 create trigger set_product_categories_updated_at
@@ -717,19 +745,11 @@ before update on public.contact_messages
 for each row execute function public.set_updated_at();
 
 drop trigger if exists log_order_status_change on public.orders;
-create trigger log_order_status_change
-after insert or update of status on public.orders
-for each row execute function public.log_order_status_change();
-
 drop trigger if exists sync_order_totals_from_items on public.order_items;
-create trigger sync_order_totals_from_items
-after insert or update or delete on public.order_items
-for each row execute function public.sync_order_totals_from_items();
-
 drop trigger if exists mark_design_as_ordered on public.order_items;
-create trigger mark_design_as_ordered
-after insert on public.order_items
-for each row execute function public.mark_design_as_ordered();
+drop function if exists public.log_order_status_change();
+drop function if exists public.sync_order_totals_from_items();
+drop function if exists public.mark_design_as_ordered();
 
 -- ---------------------------------------------------------------------------
 -- Indexes
@@ -789,6 +809,11 @@ create policy "profiles_update_own_or_admin"
 on public.profiles for update
 using (id = auth.uid() or public.is_admin())
 with check (id = auth.uid() or public.is_admin());
+
+grant select on public.profiles to authenticated;
+revoke insert, update on public.profiles from authenticated;
+grant update (full_name, phone, university_code, career, avatar_url, updated_at)
+on public.profiles to authenticated;
 
 drop policy if exists "categories_select_active" on public.product_categories;
 create policy "categories_select_active"

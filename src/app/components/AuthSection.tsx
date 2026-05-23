@@ -64,8 +64,16 @@ export function AuthSection() {
         await signInWithEmail(form.email.trim(), form.password);
         setMessage('Sesión iniciada correctamente.');
       } else {
-        await signUpWithEmail(form.email.trim(), form.password, form.fullName.trim());
-        setMessage('Cuenta creada. Revisa tu correo si Supabase solicita confirmación.');
+        if (!form.fullName.trim()) {
+          throw new Error('Ingresa tu nombre completo para crear tu perfil.');
+        }
+
+        const result = await signUpWithEmail(form.email.trim(), form.password, form.fullName.trim());
+        setMessage(
+          result.needsEmailConfirmation
+            ? 'Cuenta creada. Confirma tu correo para iniciar sesión y completar tu perfil.'
+            : 'Cuenta creada y perfil configurado correctamente.',
+        );
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'No se pudo completar la operación.');

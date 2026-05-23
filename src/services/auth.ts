@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import { apiRequest } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
 
@@ -32,19 +33,28 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signUpWithEmail(email: string, password: string, fullName: string) {
-  const { error } = await supabase.auth.signUp({
+  const { profile } = await apiRequest<{ profile: Profile }>('/api/auth/signup', {
+    method: 'POST',
+    body: {
+      email,
+      password,
+      fullName,
+    },
+  });
+
+  const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
-    },
   });
 
   if (error) {
     throw error;
   }
+
+  return {
+    needsEmailConfirmation: false,
+    profile,
+  };
 }
 
 export async function signOut() {
@@ -56,14 +66,9 @@ export async function signOut() {
 }
 
 export async function getMyProfile() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, phone, university_code, career, role, avatar_url')
-    .maybeSingle();
+  const { profile } = await apiRequest<{ profile: Profile }>('/api/me', {
+    auth: true,
+  });
 
-  if (error) {
-    throw error;
-  }
-
-  return data as Profile | null;
+  return profile;
 }
