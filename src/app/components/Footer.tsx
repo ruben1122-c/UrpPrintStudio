@@ -2,7 +2,7 @@ import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter } from 'luc
 
 export function Footer() {
   return (
-    <footer id="contacto" className="bg-[#1b4332] text-white">
+    <footer className="bg-[#1b4332] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -99,34 +99,34 @@ export function Footer() {
             <div className="mt-6">
               <h4 className="font-semibold mb-3">Síguenos</h4>
               <div className="flex gap-3">
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="Facebook"
+                <span
+                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
+                  aria-label="Facebook — próximamente"
+                  title="Próximamente"
                 >
                   <Facebook className="w-4 h-4" />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="Instagram"
+                </span>
+                <span
+                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
+                  aria-label="Instagram — próximamente"
+                  title="Próximamente"
                 >
                   <Instagram className="w-4 h-4" />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="LinkedIn"
+                </span>
+                <span
+                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
+                  aria-label="LinkedIn — próximamente"
+                  title="Próximamente"
                 >
                   <Linkedin className="w-4 h-4" />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                  aria-label="Twitter"
+                </span>
+                <span
+                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
+                  aria-label="Twitter — próximamente"
+                  title="Próximamente"
                 >
                   <Twitter className="w-4 h-4" />
-                </a>
+                </span>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { LogOut, UserCircle2 } from 'lucide-react';
+import { CheckCircle2, LogOut, UserCircle2, XCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -8,6 +8,26 @@ import { Label } from './ui/label';
 import { getCurrentSession, getMyProfile, onAuthStateChange, signInWithEmail, signOut, signUpWithEmail } from '@/services/auth';
 import { getMyOrders } from '@/services/orders';
 import type { Profile, UserOrder } from '@/types/database';
+
+type AuthField = 'email' | 'password' | 'fullName';
+
+function validateAuthField(name: AuthField, value: string): string | null {
+  const trimmed = value.trim();
+  switch (name) {
+    case 'email':
+      if (!trimmed) return 'El correo es obligatorio';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return 'Ingresa un correo válido';
+      return null;
+    case 'password':
+      if (!trimmed) return 'La contraseña es obligatoria';
+      if (trimmed.length < 6) return 'Mínimo 6 caracteres';
+      return null;
+    case 'fullName':
+      if (!trimmed) return 'El nombre es obligatorio';
+      if (/\d/.test(trimmed)) return 'El nombre no puede contener números';
+      return null;
+  }
+}
 
 export function AuthSection() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -22,6 +42,38 @@ export function AuthSection() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+
+  const markTouched = (name: AuthField) => {
+    setTouched((prev) => {
+      if (prev.has(name)) return prev;
+      const next = new Set(prev);
+      next.add(name);
+      return next;
+    });
+  };
+
+  const fieldErrors: Record<string, string | null> = {};
+  const authFields: AuthField[] = mode === 'signup'
+    ? ['fullName', 'email', 'password']
+    : ['email', 'password'];
+
+  for (const name of authFields) {
+    if (touched.has(name)) {
+      fieldErrors[name] = validateAuthField(name, form[name]);
+    }
+  }
+
+  const isFormValid = authFields.every((name) => !validateAuthField(name, form[name]));
+
+  const inputClass = (name: AuthField) => {
+    const base = 'mt-2 pr-10';
+    if (!touched.has(name)) return base;
+    return fieldErrors[name]
+      ? `${base} border-red-400 focus-visible:ring-red-400`
+      : `${base} border-green-400 focus-visible:ring-green-400`;
+  };
 
   useEffect(() => {
     getCurrentSession()
@@ -69,11 +121,7 @@ export function AuthSection() {
         }
 
         const result = await signUpWithEmail(form.email.trim(), form.password, form.fullName.trim());
-        setMessage(
-          result.needsEmailConfirmation
-            ? 'Cuenta creada. Confirma tu correo para iniciar sesión y completar tu perfil.'
-            : 'Cuenta creada y perfil configurado correctamente.',
-        );
+        setMessage('Cuenta creada y perfil configurado correctamente.');
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'No se pudo completar la operación.');
@@ -142,40 +190,80 @@ export function AuthSection() {
                 {mode === 'signup' && (
                   <div>
                     <Label htmlFor="auth-name">Nombre completo</Label>
-                    <Input
-                      id="auth-name"
-                      value={form.fullName}
-                      onChange={(event) => setForm({ ...form, fullName: event.target.value })}
-                      className="mt-2"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="auth-name"
+                        value={form.fullName}
+                        onChange={(event) => setForm({ ...form, fullName: event.target.value })}
+                        onBlur={() => markTouched('fullName')}
+                        className={inputClass('fullName')}
+                      />
+                      {touched.has('fullName') &&
+                        (fieldErrors.fullName ? (
+                          <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
+                        ) : (
+                          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                        ))}
+                    </div>
+                    {touched.has('fullName') && fieldErrors.fullName && (
+                      <p className="mt-1 text-xs text-red-500">{fieldErrors.fullName}</p>
+                    )}
                   </div>
                 )}
 
                 <div>
                   <Label htmlFor="auth-email">Correo</Label>
-                  <Input
-                    id="auth-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    className="mt-2"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="auth-email"
+                      type="email"
+                      value={form.email}
+                      onChange={(event) => setForm({ ...form, email: event.target.value })}
+                      onBlur={() => markTouched('email')}
+                      className={inputClass('email')}
+                    />
+                    {touched.has('email') &&
+                      (fieldErrors.email ? (
+                        <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
+                      ) : (
+                        <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                      ))}
+                  </div>
+                  {touched.has('email') && fieldErrors.email && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>
+                  )}
                 </div>
 
                 <div>
                   <Label htmlFor="auth-password">Contraseña</Label>
-                  <Input
-                    id="auth-password"
-                    type="password"
-                    value={form.password}
-                    onChange={(event) => setForm({ ...form, password: event.target.value })}
-                    className="mt-2"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="auth-password"
+                      type="password"
+                      value={form.password}
+                      onChange={(event) => setForm({ ...form, password: event.target.value })}
+                      onBlur={() => markTouched('password')}
+                      className={inputClass('password')}
+                    />
+                    {touched.has('password') &&
+                      (fieldErrors.password ? (
+                        <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
+                      ) : (
+                        <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                      ))}
+                  </div>
+                  {touched.has('password') && fieldErrors.password && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>
+                  )}
                 </div>
 
                 <Button
-                  className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]"
-                  disabled={isSubmitting}
+                  className={
+                    isFormValid
+                      ? 'w-full bg-[#1b4332] hover:bg-[#2d6a4f]'
+                      : 'w-full bg-gray-300 text-gray-500'
+                  }
+                  disabled={isSubmitting || !isFormValid}
                   onClick={handleSubmit}
                 >
                   {isSubmitting ? 'Procesando...' : mode === 'signin' ? 'Entrar' : 'Crear cuenta'}

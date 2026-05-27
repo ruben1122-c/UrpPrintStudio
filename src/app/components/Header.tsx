@@ -19,7 +19,14 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <a
+            href="#"
+            className="flex items-center cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">UP</span>
@@ -29,7 +36,7 @@ export function Header() {
                 <span className="text-xs text-gray-600 leading-tight">PrintStudio</span>
               </div>
             </div>
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">

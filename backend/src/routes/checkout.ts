@@ -144,7 +144,6 @@ checkoutRouter.post('/', async (request, response) => {
     }
 
     const subtotal = Number((unitPrice * quantity).toFixed(2));
-    const totalAmount = Number((subtotal + deliveryAmount).toFixed(2));
     const orderCode = generateOrderCode();
 
     const { data: design, error: designError } = await supabaseAdmin
@@ -223,7 +222,7 @@ checkoutRouter.post('/', async (request, response) => {
         order_id: order.id,
         order_code: order.order_code,
         design_id: design.id,
-        total_amount: Number(order.total_amount ?? totalAmount),
+        total_amount: Number(order.total_amount),
       },
     });
   } catch (error) {

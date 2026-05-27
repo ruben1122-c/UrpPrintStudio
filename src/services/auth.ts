@@ -42,19 +42,14 @@ export async function signUpWithEmail(email: string, password: string, fullName:
     },
   });
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw error;
+  // Auto-login after signup — non-blocking: si falla, la cuenta ya fue creada
+  try {
+    await supabase.auth.signInWithPassword({ email, password });
+  } catch {
+    // El usuario deberá iniciar sesión manualmente
   }
 
-  return {
-    needsEmailConfirmation: false,
-    profile,
-  };
+  return { profile };
 }
 
 export async function signOut() {

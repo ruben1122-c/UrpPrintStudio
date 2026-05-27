@@ -44,4 +44,4 @@ export const optionalString = (value: unknown) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-export const isValidEmail = (value: string) => value.includes('@') && value.indexOf('@') > 0;
+export const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);

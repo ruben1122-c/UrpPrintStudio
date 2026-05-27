@@ -6,6 +6,7 @@ import { CustomizationSection } from './components/CustomizationSection';
 import { AuthSection } from './components/AuthSection';
 import { BenefitsSection } from './components/BenefitsSection';
 import { HowItWorksSection } from './components/HowItWorksSection';
+import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
         <AuthSection />
         <BenefitsSection />
         <HowItWorksSection />
+        <ContactSection />
       </main>
       <Footer />
     </div>
