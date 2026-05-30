@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { createCheckoutOrder } from '@/services/orders';
+import { useCart } from '../cart/CartContext';
 import { getFirstActiveProduct, getFirstTemplateForProduct, getProductBySlug } from '@/services/products';
 import type { Product } from '@/types/database';
 
@@ -134,6 +134,7 @@ function validateField(name: FieldName, value: string): string | null {
 }
 
 export function CustomizationSection({ selectedProduct }: CustomizationSectionProps) {
+  const { addItem } = useCart();
   const [customData, setCustomData] = useState({
     nombre: '',
     carrera: '',
@@ -212,12 +213,12 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     }
   };
 
-  const handleOrderPrint = async () => {
+  const handleAddToCart = async () => {
     setSubmitMessage(null);
     setSubmitError(null);
 
     if (!customData.nombre.trim() || !customData.email.trim()) {
-      setSubmitError('Completa tu nombre y correo para crear el pedido.');
+      setSubmitError('Completa tu nombre y correo para agregar al carrito.');
       return;
     }
 
@@ -240,22 +241,13 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
         ? Number.parseInt(customData.año, 10)
         : null;
       const optionsSummary = formatOptions(productOptions);
-      const orderNotes = [
-        `Pedido creado desde el editor web para ${product.name}.`,
+      const productionNotes = [
+        `Item agregado desde el editor web para ${product.name}.`,
         exactSouvenir ? `Souvenir exacto: ${exactSouvenir}.` : null,
         optionsSummary ? `Opciones: ${optionsSummary}.` : null,
       ].filter(Boolean).join(' ');
 
-      const order = await createCheckoutOrder({
-        product_id: product.id,
-        template_id: template?.id ?? null,
-        customer_name: customData.nombre.trim(),
-        customer_email: customData.email.trim(),
-        customer_phone: customData.telefono.trim() || null,
-        customer_career: customData.carrera.trim() || null,
-        graduation_year: graduationYear,
-        quantity,
-        canvas_data: {
+      const canvasData = {
           source: 'web-editor',
           product_slug: product.slug,
           template_slug: template?.slug ?? null,
@@ -267,14 +259,30 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
             año: customData.año,
             hasPhotoPreview: Boolean(customData.foto),
           },
-        },
-        notes: orderNotes,
+        };
+
+      addItem({
+        productId: product.id,
+        productSlug: product.slug,
+        productName: product.name,
+        productImageUrl: product.image_url,
+        unitPrice: Number(product.base_price),
+        templateId: template?.id ?? null,
+        quantity,
+        customerName: customData.nombre.trim(),
+        customerEmail: customData.email.trim(),
+        customerPhone: customData.telefono.trim(),
+        customerCareer: customData.carrera.trim(),
+        graduationYear,
+        exactSouvenir: exactSouvenir || null,
+        productOptions,
+        canvasData,
+        productionNotes,
       });
 
-      setSubmitMessage(`Pedido ${order.order_code} creado correctamente. Total: S/. ${order.total_amount.toFixed(2)}.`);
-      window.dispatchEvent(new CustomEvent('urp:orders-changed'));
+      setSubmitMessage('Producto agregado al carrito.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo crear el pedido.';
+      const message = error instanceof Error ? error.message : 'No se pudo agregar al carrito.';
       setSubmitError(message);
     } finally {
       setIsSubmitting(false);
@@ -647,9 +655,10 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                       : 'w-full bg-gray-300 text-gray-500'
                   }
                   disabled={isSubmitting || !isOrderValid}
-                  onClick={handleOrderPrint}
+                  onClick={handleAddToCart}
                 >
-                  {isSubmitting ? 'Creando pedido...' : 'Ordenar impresión'}
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  {isSubmitting ? 'Agregando...' : 'Agregar al carrito'}
                 </Button>
                 {submitMessage && (
                   <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">

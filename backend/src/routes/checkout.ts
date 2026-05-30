@@ -53,6 +53,228 @@ const cleanupCheckout = async (orderId: string | null, designId: string | null) 
   }
 };
 
+const cleanupCartCheckout = async (orderId: string | null, designIds: string[]) => {
+  if (orderId) {
+    await supabaseAdmin.from('order_status_history').delete().eq('order_id', orderId);
+    await supabaseAdmin.from('order_items').delete().eq('order_id', orderId);
+    await supabaseAdmin.from('orders').delete().eq('id', orderId);
+  }
+
+  if (designIds.length > 0) {
+    await supabaseAdmin.from('design_assets').delete().in('design_id', designIds);
+    await supabaseAdmin.from('designs').delete().in('id', designIds);
+  }
+};
+
+checkoutRouter.post('/cart', async (request, response) => {
+  let createdOrderId: string | null = null;
+  const createdDesignIds: string[] = [];
+
+  try {
+    const { user } = await getOptionalUser(request);
+    const customerName = requireString(request.body.customerName, 'customerName');
+    const customerEmail = requireString(request.body.customerEmail, 'customerEmail').toLowerCase();
+    const customerPhone = optionalString(request.body.customerPhone);
+    const deliveryMethod = optionalString(request.body.deliveryMethod) ?? 'pickup';
+    const deliveryAddress = optionalString(request.body.deliveryAddress);
+    const deliveryDistrict = optionalString(request.body.deliveryDistrict);
+    const notes = optionalString(request.body.notes);
+    const deliveryAmount = toNonNegativeMoney(request.body.deliveryAmount, 'deliveryAmount');
+
+    if (!isValidEmail(customerEmail)) {
+      throw new HttpError(400, 'invalid_email', 'Ingresa un correo válido.');
+    }
+
+    if (!['pickup', 'delivery', 'digital'].includes(deliveryMethod)) {
+      throw new HttpError(400, 'invalid_delivery_method', 'El método de entrega no es válido.');
+    }
+
+    if (!Array.isArray(request.body.items) || request.body.items.length === 0) {
+      throw new HttpError(400, 'empty_cart', 'Agrega al menos un producto al carrito.');
+    }
+
+    const preparedItems = [];
+
+    for (const [index, item] of request.body.items.entries()) {
+      const productId = requireString(item.productId, `items[${index}].productId`);
+      const templateId = optionalString(item.templateId);
+      const quantity = toPositiveInteger(item.quantity);
+      const customerCareer = optionalString(item.customerCareer);
+      const graduationYear = toNullableYear(item.graduationYear);
+      const productionNotes = optionalString(item.productionNotes);
+      const canvasData =
+        typeof item.canvasData === 'object' && item.canvasData !== null
+          ? item.canvasData
+          : {};
+
+      const { data: product, error: productError } = await supabaseAdmin
+        .from('products')
+        .select('id, name, slug, base_price, active')
+        .eq('id', productId)
+        .eq('active', true)
+        .maybeSingle();
+
+      if (productError) {
+        throw new HttpError(500, 'product_fetch_failed', productError.message);
+      }
+
+      if (!product) {
+        throw new HttpError(404, 'product_not_found', 'No se encontró uno de los productos activos.');
+      }
+
+      let selectedTemplateId: string | null = null;
+
+      if (templateId) {
+        const { data: template, error: templateError } = await supabaseAdmin
+          .from('templates')
+          .select('id')
+          .eq('id', templateId)
+          .eq('product_id', product.id)
+          .eq('active', true)
+          .maybeSingle();
+
+        if (templateError) {
+          throw new HttpError(500, 'template_fetch_failed', templateError.message);
+        }
+
+        if (!template) {
+          throw new HttpError(404, 'template_not_found', 'Una plantilla no pertenece al producto activo.');
+        }
+
+        selectedTemplateId = template.id;
+      } else {
+        const { data: template, error: templateError } = await supabaseAdmin
+          .from('templates')
+          .select('id')
+          .eq('product_id', product.id)
+          .eq('active', true)
+          .order('sort_order', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (templateError) {
+          throw new HttpError(500, 'template_fetch_failed', templateError.message);
+        }
+
+        selectedTemplateId = template?.id ?? null;
+      }
+
+      const unitPrice = Number(product.base_price);
+
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new HttpError(500, 'invalid_product_price', 'Uno de los productos no tiene un precio válido.');
+      }
+
+      preparedItems.push({
+        product,
+        templateId: selectedTemplateId,
+        quantity,
+        unitPrice,
+        customerCareer,
+        graduationYear,
+        canvasData,
+        productionNotes,
+      });
+    }
+
+    const subtotal = Number(
+      preparedItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0).toFixed(2),
+    );
+    const orderCode = generateOrderCode();
+
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .insert({
+        order_code: orderCode,
+        user_id: user?.id ?? null,
+        status: 'pending',
+        payment_status: 'pending',
+        payment_method: 'none',
+        delivery_method: deliveryMethod,
+        subtotal,
+        commission_amount: 0,
+        delivery_amount: deliveryAmount,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        delivery_address: deliveryAddress,
+        delivery_district: deliveryDistrict,
+        notes,
+      })
+      .select('id, order_code, total_amount')
+      .single();
+
+    if (orderError) {
+      throw new HttpError(500, 'order_create_failed', orderError.message);
+    }
+
+    createdOrderId = order.id;
+
+    for (const item of preparedItems) {
+      const { data: design, error: designError } = await supabaseAdmin
+        .from('designs')
+        .insert({
+          user_id: user?.id ?? null,
+          product_id: item.product.id,
+          template_id: item.templateId,
+          status: 'ordered',
+          guest_email: user ? null : customerEmail,
+          customer_name: customerName,
+          customer_career: item.customerCareer,
+          graduation_year: item.graduationYear,
+          canvas_data: item.canvasData,
+        })
+        .select('id')
+        .single();
+
+      if (designError) {
+        throw new HttpError(500, 'design_create_failed', designError.message);
+      }
+
+      createdDesignIds.push(design.id);
+
+      const { error: itemError } = await supabaseAdmin.from('order_items').insert({
+        order_id: order.id,
+        design_id: design.id,
+        product_id: item.product.id,
+        template_id: item.templateId,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        production_notes: item.productionNotes,
+      });
+
+      if (itemError) {
+        throw new HttpError(500, 'order_item_create_failed', itemError.message);
+      }
+    }
+
+    await supabaseAdmin.from('order_status_history').insert({
+      order_id: order.id,
+      old_status: null,
+      new_status: 'pending',
+      changed_by: user?.id ?? null,
+      note: 'Pedido con carrito creado desde API backend.',
+    });
+
+    return response.status(201).json({
+      order: {
+        order_id: order.id,
+        order_code: order.order_code,
+        total_amount: Number(order.total_amount),
+        item_count: preparedItems.length,
+      },
+    });
+  } catch (error) {
+    if (createdOrderId || createdDesignIds.length > 0) {
+      await cleanupCartCheckout(createdOrderId, createdDesignIds).catch((cleanupError) => {
+        console.error('Cart checkout cleanup failed', cleanupError);
+      });
+    }
+
+    return sendError(response, error);
+  }
+});
+
 checkoutRouter.post('/', async (request, response) => {
   let createdDesignId: string | null = null;
   let createdOrderId: string | null = null;

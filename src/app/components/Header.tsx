@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Menu, X, User } from 'lucide-react';
 import { Button } from './ui/button';
+import { CartPanel } from './CartPanel';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -51,8 +52,9 @@ export function Header() {
             ))}
           </nav>
 
-          {/* Login Button */}
-          <div className="hidden md:flex items-center">
+          {/* Header actions */}
+          <div className="hidden md:flex items-center gap-2">
+            <CartPanel />
             <Button className="bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
               <a href="#cuenta">
                 <User className="mr-2 h-4 w-4" />
@@ -87,10 +89,11 @@ export function Header() {
                 {item.name}
               </a>
             ))}
+            <CartPanel className="w-full justify-center" label="Carrito" />
             <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
               <a href="#cuenta" onClick={() => setIsMenuOpen(false)}>
-              <User className="mr-2 h-4 w-4" />
-              Iniciar sesión
+                <User className="mr-2 h-4 w-4" />
+                Iniciar sesión
               </a>
             </Button>
           </div>

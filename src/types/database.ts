@@ -58,6 +58,35 @@ export type CheckoutOrderResult = {
   total_amount: number;
 };
 
+export type CartCheckoutItemInput = {
+  product_id: string;
+  template_id?: string | null;
+  quantity: number;
+  customer_career?: string | null;
+  graduation_year?: number | null;
+  canvas_data?: Record<string, unknown>;
+  production_notes?: string | null;
+};
+
+export type CartCheckoutInput = {
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  delivery_method?: 'pickup' | 'delivery' | 'digital';
+  delivery_amount?: number;
+  delivery_address?: string | null;
+  delivery_district?: string | null;
+  notes?: string | null;
+  items: CartCheckoutItemInput[];
+};
+
+export type CartCheckoutResult = {
+  order_id: string;
+  order_code: string;
+  total_amount: number;
+  item_count: number;
+};
+
 export type UserOrder = {
   id: string;
   order_code: string;
