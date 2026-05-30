@@ -1084,7 +1084,7 @@ from (
     ('ropa', 'Camisetas', 'camisetas', 'Camisetas personalizadas con tu diseno universitario.', 35.00, 0.00, 'https://images.unsplash.com/photo-1678951558353-3a85c36358bb', 1),
     ('hogar-oficina', 'Tazas', 'tazas', 'Tazas personalizadas para uso diario o regalo.', 25.00, 0.00, 'https://images.unsplash.com/photo-1650959858546-d09833d5317b', 2),
     ('papeleria', 'Posters', 'posters', 'Posters decorativos con estilo universitario.', 20.00, 0.00, 'https://images.unsplash.com/photo-1769283996520-b8a1e5834c5d', 3),
-    ('papeleria', 'Diplomas', 'diplomas', 'Diplomas conmemorativos personalizados.', 30.00, 0.00, 'https://images.unsplash.com/photo-1638636241638-aef5120c5153', 4),
+    ('accesorios', 'Pines URP', 'pines-urp', 'Pines personalizados con identidad URP.', 12.00, 0.00, 'https://images.unsplash.com/photo-1614111662625-a024f2759e19', 4),
     ('accesorios', 'Tote Bags', 'tote-bags', 'Bolsas reutilizables con identidad URP.', 28.00, 0.00, 'https://images.unsplash.com/photo-1574365569389-a10d488ca3fb', 5),
     ('papeleria', 'Stickers', 'stickers', 'Stickers personalizados adhesivos.', 15.00, 0.00, 'https://images.unsplash.com/photo-1591241880902-7f05d345516e', 6)
 ) as p(category_slug, name, slug, description, base_price, digital_download_price, image_url, sort_order)
@@ -1124,7 +1124,7 @@ from (
     ('camisetas', 'Plantilla URP Clasica', 'camiseta-urp-clasica', 'Diseno central para camiseta con nombre, carrera, ano y foto.', 1200, 1400, '{"fields":["customer_name","customer_career","graduation_year","source_photo"],"theme":"urp-green"}', 1),
     ('tazas', 'Taza Promocion URP', 'taza-promocion-urp', 'Diseno envolvente para taza universitaria.', 1600, 700, '{"fields":["customer_name","customer_career","graduation_year"],"theme":"urp-green"}', 1),
     ('posters', 'Poster Egresado URP', 'poster-egresado-urp', 'Poster vertical con fotografia y datos academicos.', 1200, 1800, '{"fields":["customer_name","customer_career","graduation_year","source_photo"],"theme":"urp-green"}', 1),
-    ('diplomas', 'Diploma Conmemorativo URP', 'diploma-conmemorativo-urp', 'Diploma digital conmemorativo para estudiantes y egresados.', 1600, 1200, '{"fields":["customer_name","customer_career","graduation_year"],"theme":"formal"}', 1),
+    ('pines-urp', 'Pin URP Personal', 'pin-urp-personal', 'Diseno circular para pin con nombre, carrera y ano.', 1000, 1000, '{"fields":["customer_name","customer_career","graduation_year"],"theme":"badge"}', 1),
     ('tote-bags', 'Tote Bag URP Minimal', 'tote-bag-urp-minimal', 'Diseno minimalista para bolsa reutilizable.', 1200, 1400, '{"fields":["customer_name","customer_career"],"theme":"minimal"}', 1),
     ('stickers', 'Sticker URP Personal', 'sticker-urp-personal', 'Sticker circular con nombre, carrera y foto.', 1000, 1000, '{"fields":["customer_name","customer_career","source_photo"],"theme":"badge"}', 1)
 ) as t(product_slug, name, slug, description, canvas_width, canvas_height, config, sort_order)
