@@ -9,6 +9,7 @@ export function Header() {
     { name: 'Inicio', href: '#inicio' },
     { name: 'Crear diseño', href: '#personalizar' },
     { name: 'Productos', href: '#productos' },
+    { name: 'Cuenta', href: '#cuenta' },
     { name: 'Cómo funciona', href: '#como-funciona' },
     { name: 'Contacto', href: '#contacto' },
   ];
@@ -18,7 +19,14 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <a
+            href="#"
+            className="flex items-center cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">UP</span>
@@ -28,7 +36,7 @@ export function Header() {
                 <span className="text-xs text-gray-600 leading-tight">PrintStudio</span>
               </div>
             </div>
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
@@ -45,9 +53,11 @@ export function Header() {
 
           {/* Login Button */}
           <div className="hidden md:flex items-center">
-            <Button className="bg-[#1b4332] hover:bg-[#2d6a4f]">
-              <User className="mr-2 h-4 w-4" />
-              Iniciar sesión
+            <Button className="bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
+              <a href="#cuenta">
+                <User className="mr-2 h-4 w-4" />
+                Iniciar sesión
+              </a>
             </Button>
           </div>
 
@@ -77,9 +87,11 @@ export function Header() {
                 {item.name}
               </a>
             ))}
-            <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]">
+            <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
+              <a href="#cuenta" onClick={() => setIsMenuOpen(false)}>
               <User className="mr-2 h-4 w-4" />
               Iniciar sesión
+              </a>
             </Button>
           </div>
         )}

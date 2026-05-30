@@ -28,7 +28,7 @@ export function HeroSection() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="border-white text-white hover:bg-white/10"
+                className="border-2 border-white bg-white/15 text-white shadow-sm hover:bg-white hover:text-[#1b4332]"
                 onClick={() => document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 Ver productos
