@@ -82,13 +82,13 @@ const fallbackProducts: Product[] = [
 ];
 
 type ProductsSectionProps = {
-  selectedProductId: string | null;
-  onSelectProduct: (productId: string) => void;
+  selectedProduct: Product | null;
+  onSelectProduct: (product: Product) => void;
 };
 
 const formatPrice = (product: Product) => `Desde S/. ${Number(product.base_price).toFixed(0)}`;
 
-export function ProductsSection({ selectedProductId, onSelectProduct }: ProductsSectionProps) {
+export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSectionProps) {
   const [products, setProducts] = useState<Product[]>(fallbackProducts);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -133,11 +133,11 @@ export function ProductsSection({ selectedProductId, onSelectProduct }: Products
             <Card
               key={product.id}
               className={`group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl ${
-                selectedProductId === product.id
+                selectedProduct?.id === product.id
                   ? 'ring-2 ring-[#1b4332] shadow-xl'
                   : ''
               }`}
-              onClick={() => onSelectProduct(product.id)}
+              onClick={() => onSelectProduct(product)}
             >
               <div className="relative h-64 overflow-hidden">
                 <ImageWithFallback
@@ -146,7 +146,7 @@ export function ProductsSection({ selectedProductId, onSelectProduct }: Products
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                {selectedProductId === product.id && (
+                {selectedProduct?.id === product.id && (
                   <div className="absolute top-4 right-4 bg-[#1b4332] text-white px-3 py-1 rounded-full text-sm font-semibold">
                     ✓ Seleccionado
                   </div>
@@ -163,15 +163,15 @@ export function ProductsSection({ selectedProductId, onSelectProduct }: Products
                   </span>
                   <Button
                     size="sm"
-                    variant={selectedProductId === product.id ? 'default' : 'outline'}
+                    variant={selectedProduct?.id === product.id ? 'default' : 'outline'}
                     className={
-                      selectedProductId === product.id
+                      selectedProduct?.id === product.id
                         ? 'bg-[#1b4332] hover:bg-[#2d6a4f]'
                         : ''
                     }
                   >
                     <ShoppingBag className="mr-2 h-4 w-4" />
-                    {selectedProductId === product.id ? 'Seleccionado' : 'Seleccionar'}
+                    {selectedProduct?.id === product.id ? 'Seleccionado' : 'Seleccionar'}
                   </Button>
                 </div>
               </div>

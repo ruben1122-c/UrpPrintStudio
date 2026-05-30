@@ -45,6 +45,21 @@ export async function getProductById(productId: string) {
   return data as Product | null;
 }
 
+export async function getProductBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, name, slug, description, base_price, digital_download_price, currency, image_url, active, sort_order')
+    .eq('slug', slug)
+    .eq('active', true)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as Product | null;
+}
+
 export async function getFirstTemplateForProduct(productId: string) {
   const { data, error } = await supabase
     .from('templates')

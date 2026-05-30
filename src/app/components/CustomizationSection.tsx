@@ -7,11 +7,11 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { createCheckoutOrder } from '@/services/orders';
-import { getFirstActiveProduct, getFirstTemplateForProduct, getProductById } from '@/services/products';
+import { getFirstActiveProduct, getFirstTemplateForProduct, getProductBySlug } from '@/services/products';
 import type { Product } from '@/types/database';
 
 type CustomizationSectionProps = {
-  selectedProductId: string | null;
+  selectedProduct: Product | null;
 };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,6 +20,87 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const DOWNLOAD_REQUIRED_FIELDS = ['nombre', 'carrera', 'año'] as const;
 
 type FieldName = 'nombre' | 'carrera' | 'año' | 'email' | 'telefono' | 'cantidad';
+
+type PreviewShape = 'apparel' | 'horizontal' | 'vertical' | 'badge';
+
+type ProductOptionConfig = {
+  key: string;
+  label: string;
+  values: string[];
+};
+
+type ProductCustomizationConfig = {
+  exactSouvenirs: string[];
+  options: ProductOptionConfig[];
+  previewShape: PreviewShape;
+};
+
+const DEFAULT_CUSTOMIZATION: ProductCustomizationConfig = {
+  exactSouvenirs: ['Souvenir personalizado'],
+  options: [{ key: 'acabado', label: 'Acabado', values: ['Clásico'] }],
+  previewShape: 'badge',
+};
+
+const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
+  camisetas: {
+    exactSouvenirs: ['Camiseta clásica', 'Camiseta oversize'],
+    options: [
+      { key: 'talla', label: 'Talla', values: ['S', 'M', 'L', 'XL'] },
+      { key: 'fit', label: 'Fit', values: ['Regular', 'Oversize'] },
+    ],
+    previewShape: 'apparel',
+  },
+  tazas: {
+    exactSouvenirs: ['Taza blanca', 'Taza mágica'],
+    options: [{ key: 'capacidad', label: 'Capacidad', values: ['11 oz', '15 oz'] }],
+    previewShape: 'horizontal',
+  },
+  posters: {
+    exactSouvenirs: ['Poster egresado', 'Poster promoción'],
+    options: [
+      { key: 'tamaño', label: 'Tamaño', values: ['A4', 'A3'] },
+      { key: 'orientación', label: 'Orientación', values: ['Vertical', 'Horizontal'] },
+    ],
+    previewShape: 'vertical',
+  },
+  'pines-urp': {
+    exactSouvenirs: ['Pin redondo URP', 'Pin escudo URP'],
+    options: [
+      { key: 'tamaño', label: 'Tamaño', values: ['3 cm', '5 cm'] },
+      { key: 'acabado', label: 'Acabado', values: ['Mate', 'Brillante'] },
+    ],
+    previewShape: 'badge',
+  },
+  'tote-bags': {
+    exactSouvenirs: ['Tote natural', 'Tote negra'],
+    options: [{ key: 'tamaño', label: 'Tamaño', values: ['Mediana', 'Grande'] }],
+    previewShape: 'apparel',
+  },
+  stickers: {
+    exactSouvenirs: ['Sticker individual', 'Pack stickers'],
+    options: [
+      { key: 'pack', label: 'Pack', values: ['1 unidad', 'Pack x6', 'Pack x12'] },
+      { key: 'acabado', label: 'Acabado', values: ['Mate', 'Brillante'] },
+    ],
+    previewShape: 'badge',
+  },
+};
+
+function getCustomizationConfig(productSlug?: string | null) {
+  if (!productSlug) return null;
+  return PRODUCT_CUSTOMIZATIONS[productSlug] ?? DEFAULT_CUSTOMIZATION;
+}
+
+function getDefaultOptions(config: ProductCustomizationConfig) {
+  return config.options.reduce<Record<string, string>>((acc, option) => {
+    acc[option.key] = option.values[0] ?? '';
+    return acc;
+  }, {});
+}
+
+function formatOptions(options: Record<string, string>) {
+  return Object.values(options).filter(Boolean).join(' · ');
+}
 
 function validateField(name: FieldName, value: string): string | null {
   const trimmed = value.trim();
@@ -52,7 +133,7 @@ function validateField(name: FieldName, value: string): string | null {
   }
 }
 
-export function CustomizationSection({ selectedProductId }: CustomizationSectionProps) {
+export function CustomizationSection({ selectedProduct }: CustomizationSectionProps) {
   const [customData, setCustomData] = useState({
     nombre: '',
     carrera: '',
@@ -66,19 +147,23 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [exactSouvenir, setExactSouvenir] = useState('');
+  const [productOptions, setProductOptions] = useState<Record<string, string>>({});
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // Producto seleccionado
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const customizationConfig = getCustomizationConfig(selectedProduct?.slug);
+  const selectedOptionsSummary = formatOptions(productOptions);
 
   useEffect(() => {
-    if (!selectedProductId || !uuidPattern.test(selectedProductId)) {
-      setSelectedProduct(null);
+    if (!customizationConfig) {
+      setExactSouvenir('');
+      setProductOptions({});
       return;
     }
 
-    getProductById(selectedProductId).then(setSelectedProduct).catch(() => setSelectedProduct(null));
-  }, [selectedProductId]);
+    setExactSouvenir(customizationConfig.exactSouvenirs[0] ?? '');
+    setProductOptions(getDefaultOptions(customizationConfig));
+  }, [selectedProduct?.slug, customizationConfig]);
 
   // Campos que el usuario ya interactuó (blur) → mostramos validación visual
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -139,10 +224,11 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
     setIsSubmitting(true);
 
     try {
-      const selectedProduct = selectedProductId && uuidPattern.test(selectedProductId)
-        ? await getProductById(selectedProductId)
-        : null;
-      const product = selectedProduct ?? await getFirstActiveProduct();
+      const product = selectedProduct && uuidPattern.test(selectedProduct.id)
+        ? selectedProduct
+        : selectedProduct
+          ? await getProductBySlug(selectedProduct.slug)
+          : await getFirstActiveProduct();
 
       if (!product) {
         throw new Error('No hay productos activos en Supabase. Ejecuta primero el script schema.sql.');
@@ -153,6 +239,12 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
       const graduationYear = customData.año
         ? Number.parseInt(customData.año, 10)
         : null;
+      const optionsSummary = formatOptions(productOptions);
+      const orderNotes = [
+        `Pedido creado desde el editor web para ${product.name}.`,
+        exactSouvenir ? `Souvenir exacto: ${exactSouvenir}.` : null,
+        optionsSummary ? `Opciones: ${optionsSummary}.` : null,
+      ].filter(Boolean).join(' ');
 
       const order = await createCheckoutOrder({
         product_id: product.id,
@@ -167,6 +259,8 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
           source: 'web-editor',
           product_slug: product.slug,
           template_slug: template?.slug ?? null,
+          exact_souvenir: exactSouvenir || null,
+          product_options: productOptions,
           fields: {
             nombre: customData.nombre,
             carrera: customData.carrera,
@@ -174,7 +268,7 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
             hasPhotoPreview: Boolean(customData.foto),
           },
         },
-        notes: `Pedido creado desde el editor web para ${product.name}.`,
+        notes: orderNotes,
       });
 
       setSubmitMessage(`Pedido ${order.order_code} creado correctamente. Total: S/. ${order.total_amount.toFixed(2)}.`);
@@ -216,6 +310,14 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
     const error = fieldErrors[name];
     if (error) return `${base} border-red-400 focus-visible:ring-red-400`;
     return `${base} border-green-400 focus-visible:ring-green-400`;
+  };
+
+  const previewShape = customizationConfig?.previewShape ?? 'badge';
+  const previewFrameClass: Record<PreviewShape, string> = {
+    apparel: 'w-full max-w-sm min-h-[420px] rounded-3xl',
+    horizontal: 'w-full max-w-md min-h-[300px] rounded-[2rem]',
+    vertical: 'w-full max-w-xs min-h-[500px] rounded-lg',
+    badge: 'w-full max-w-sm aspect-square rounded-full',
   };
 
   return (
@@ -263,6 +365,66 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
               Información del diseño
             </h3>
             <div className="space-y-6">
+              {selectedProduct && customizationConfig && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+                  <div>
+                    <Label>Souvenir exacto</Label>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {customizationConfig.exactSouvenirs.map((souvenir) => (
+                        <Button
+                          key={souvenir}
+                          type="button"
+                          size="sm"
+                          variant={exactSouvenir === souvenir ? 'default' : 'outline'}
+                          className={
+                            exactSouvenir === souvenir
+                              ? 'bg-[#1b4332] hover:bg-[#2d6a4f]'
+                              : 'bg-white'
+                          }
+                          onClick={() => setExactSouvenir(souvenir)}
+                        >
+                          {souvenir}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {customizationConfig.options.map((option) => (
+                      <div key={option.key}>
+                        <Label>{option.label}</Label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {option.values.map((value) => {
+                            const isSelected = productOptions[option.key] === value;
+                            return (
+                              <Button
+                                key={value}
+                                type="button"
+                                size="sm"
+                                variant={isSelected ? 'default' : 'outline'}
+                                className={
+                                  isSelected
+                                    ? 'bg-[#1b4332] hover:bg-[#2d6a4f]'
+                                    : 'bg-white'
+                                }
+                                onClick={() =>
+                                  setProductOptions((prev) => ({
+                                    ...prev,
+                                    [option.key]: value,
+                                  }))
+                                }
+                              >
+                                {value}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Nombre */}
               <div>
                 <Label htmlFor="nombre">
@@ -509,7 +671,10 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
             <h3 className="text-2xl font-bold text-gray-900 mb-6">
               Vista previa
             </h3>
-            <div ref={previewRef} className="bg-white rounded-lg shadow-lg p-8 min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden">
+            <div
+              ref={previewRef}
+              className={`bg-white shadow-lg p-8 flex flex-col items-center justify-center relative overflow-hidden mx-auto ${previewFrameClass[previewShape]}`}
+            >
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-5">
                 <div className="absolute inset-0" style={{
@@ -525,6 +690,11 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
                   <div className="w-20 h-20 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-full mx-auto flex items-center justify-center mb-4">
                     <span className="text-white font-bold text-2xl">URP</span>
                   </div>
+                  {exactSouvenir && (
+                    <div className="text-sm font-semibold text-[#1b4332] mb-1">
+                      {exactSouvenir}
+                    </div>
+                  )}
                   <div className="text-sm text-gray-500">Universidad Ricardo Palma</div>
                 </div>
 
@@ -567,6 +737,11 @@ export function CustomizationSection({ selectedProductId }: CustomizationSection
                       ? `${selectedProduct.name} · URP PrintStudio`
                       : 'Diseñado con URP PrintStudio'}
                   </div>
+                  {selectedOptionsSummary && (
+                    <div className="mt-2 text-xs font-medium text-gray-500">
+                      {selectedOptionsSummary}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

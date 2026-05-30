@@ -8,9 +8,10 @@ import { BenefitsSection } from './components/BenefitsSection';
 import { HowItWorksSection } from './components/HowItWorksSection';
 import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
+import type { Product } from '@/types/database';
 
 export default function App() {
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   return (
     <div className="min-h-screen bg-white">
@@ -18,10 +19,10 @@ export default function App() {
       <main>
         <HeroSection />
         <ProductsSection
-          selectedProductId={selectedProductId}
-          onSelectProduct={setSelectedProductId}
+          selectedProduct={selectedProduct}
+          onSelectProduct={setSelectedProduct}
         />
-        <CustomizationSection selectedProductId={selectedProductId} />
+        <CustomizationSection selectedProduct={selectedProduct} />
         <AuthSection />
         <BenefitsSection />
         <HowItWorksSection />
