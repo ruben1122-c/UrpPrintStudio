@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
-import { getOptionalUser } from '../middleware/auth.js';
+import { getOptionalUser, requireAuth, type AuthenticatedRequest } from '../middleware/auth.js';
 import { HttpError, isValidEmail, optionalString, requireString, sendError } from '../lib/http.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 
@@ -66,12 +66,12 @@ const cleanupCartCheckout = async (orderId: string | null, designIds: string[]) 
   }
 };
 
-checkoutRouter.post('/cart', async (request, response) => {
+checkoutRouter.post('/cart', requireAuth, async (request, response) => {
   let createdOrderId: string | null = null;
   const createdDesignIds: string[] = [];
 
   try {
-    const { user } = await getOptionalUser(request);
+    const { user } = request as AuthenticatedRequest;
     const customerName = requireString(request.body.customerName, 'customerName');
     const customerEmail = requireString(request.body.customerEmail, 'customerEmail').toLowerCase();
     const customerPhone = optionalString(request.body.customerPhone);
@@ -218,7 +218,7 @@ checkoutRouter.post('/cart', async (request, response) => {
           product_id: item.product.id,
           template_id: item.templateId,
           status: 'ordered',
-          guest_email: user ? null : customerEmail,
+          guest_email: null,
           customer_name: customerName,
           customer_career: item.customerCareer,
           graduation_year: item.graduationYear,

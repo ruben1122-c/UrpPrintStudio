@@ -43,7 +43,7 @@ export async function getMyOrders() {
 export async function createCartCheckout(payload: CartCheckoutInput) {
   const { order } = await apiRequest<{ order: CartCheckoutResult }>('/api/checkout/cart', {
     method: 'POST',
-    auth: 'optional',
+    auth: true,
     body: {
       customerName: payload.customer_name,
       customerEmail: payload.customer_email,

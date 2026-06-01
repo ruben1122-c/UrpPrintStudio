@@ -20,7 +20,7 @@ function validateAuthField(name: AuthField, value: string): string | null {
       return null;
     case 'password':
       if (!trimmed) return 'La contraseña es obligatoria';
-      if (trimmed.length < 6) return 'Mínimo 6 caracteres';
+      if (trimmed.length < 8) return 'Mínimo 8 caracteres';
       return null;
     case 'fullName':
       if (!trimmed) return 'El nombre es obligatorio';

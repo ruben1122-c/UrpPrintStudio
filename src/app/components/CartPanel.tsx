@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { CheckCircle2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { getCurrentSession, onAuthStateChange, signInWithEmail, signUpWithEmail } from '@/services/auth';
 import { createCartCheckout } from '@/services/orders';
 import { useCart } from '../cart/CartContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -23,6 +25,12 @@ type CartPanelProps = {
   label?: string;
 };
 
+type CheckoutContact = {
+  name: string;
+  email: string;
+  phone: string;
+};
+
 function formatMoney(value: number) {
   return `S/. ${value.toFixed(2)}`;
 }
@@ -42,6 +50,13 @@ export function CartPanel({ className, label }: CartPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authFullName, setAuthFullName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
 
   const firstItem = items[0];
 
@@ -50,28 +65,46 @@ export function CartPanel({ className, label }: CartPanelProps) {
     setCustomerName((current) => current || firstItem.customerName);
     setCustomerEmail((current) => current || firstItem.customerEmail);
     setCustomerPhone((current) => current || firstItem.customerPhone);
+    setAuthFullName((current) => current || firstItem.customerName);
+    setAuthEmail((current) => current || firstItem.customerEmail);
   }, [firstItem]);
+
+  useEffect(() => {
+    getCurrentSession()
+      .then((currentSession) => {
+        setSession(currentSession);
+        if (currentSession?.user.email) {
+          setCustomerEmail((current) => current || currentSession.user.email || '');
+        }
+      })
+      .catch((error) => setCheckoutError(error.message));
+
+    return onAuthStateChange((currentSession) => {
+      setSession(currentSession);
+      if (currentSession?.user.email) {
+        setCustomerEmail((current) => current || currentSession.user.email || '');
+      }
+    });
+  }, []);
 
   const canCheckout = useMemo(() => {
     return items.length > 0 && Boolean(customerName.trim()) && Boolean(customerEmail.trim());
   }, [customerEmail, customerName, items.length]);
 
-  const handleCheckout = async () => {
-    setCheckoutMessage(null);
-    setCheckoutError(null);
-
-    if (!canCheckout) {
-      setCheckoutError('Completa nombre y correo para finalizar el pedido.');
-      return;
-    }
+  const submitCartOrder = async (contact?: CheckoutContact) => {
+    const checkoutContact = contact ?? {
+      name: customerName.trim(),
+      email: customerEmail.trim(),
+      phone: customerPhone.trim(),
+    };
 
     setIsSubmitting(true);
 
     try {
       const order = await createCartCheckout({
-        customer_name: customerName.trim(),
-        customer_email: customerEmail.trim(),
-        customer_phone: customerPhone.trim() || null,
+        customer_name: checkoutContact.name,
+        customer_email: checkoutContact.email,
+        customer_phone: checkoutContact.phone || null,
         delivery_method: 'pickup',
         notes: 'Pedido creado desde carrito web.',
         items: items.map((item) => ({
@@ -95,6 +128,70 @@ export function CartPanel({ className, label }: CartPanelProps) {
       setCheckoutError(message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    setCheckoutMessage(null);
+    setCheckoutError(null);
+
+    if (!canCheckout) {
+      setCheckoutError('Completa nombre y correo para finalizar el pedido.');
+      return;
+    }
+
+    if (!session) {
+      setShowAuthForm(true);
+      setAuthFullName((current) => current || customerName);
+      setAuthEmail((current) => current || customerEmail);
+      return;
+    }
+
+    await submitCartOrder();
+  };
+
+  const handleAuthSubmit = async () => {
+    setCheckoutMessage(null);
+    setCheckoutError(null);
+
+    const email = authEmail.trim() || customerEmail.trim();
+    const password = authPassword.trim();
+    const fullName = authFullName.trim() || customerName.trim();
+
+    if (!email || !password || (authMode === 'signup' && !fullName)) {
+      setCheckoutError('Completa los datos de acceso para continuar.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setCheckoutError('La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+
+    try {
+      if (authMode === 'signup') {
+        await signUpWithEmail(email, password, fullName);
+        await signInWithEmail(email, password);
+        setCustomerName((current) => current || fullName);
+      } else {
+        await signInWithEmail(email, password);
+      }
+
+      setCustomerEmail((current) => current || email);
+      setShowAuthForm(false);
+      setAuthPassword('');
+      await submitCartOrder({
+        name: customerName.trim() || fullName,
+        email,
+        phone: customerPhone.trim(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión.';
+      setCheckoutError(message);
+    } finally {
+      setIsAuthSubmitting(false);
     }
   };
 
@@ -233,6 +330,77 @@ export function CartPanel({ className, label }: CartPanelProps) {
                   />
                 </div>
               </div>
+              {showAuthForm && !session && (
+                <div className="rounded-lg border border-[#1b4332]/20 bg-[#1b4332]/5 p-4">
+                  <div className="mb-3">
+                    <div className="font-semibold text-gray-900">Accede para finalizar</div>
+                    <div className="text-sm text-gray-600">
+                      Tu cuenta se crea confirmada y no requiere validar correo.
+                    </div>
+                  </div>
+                  <div className="mb-4 grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={authMode === 'signin' ? 'default' : 'outline'}
+                      className={authMode === 'signin' ? 'bg-[#1b4332] hover:bg-[#2d6a4f]' : 'bg-white'}
+                      onClick={() => setAuthMode('signin')}
+                    >
+                      Iniciar sesión
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={authMode === 'signup' ? 'default' : 'outline'}
+                      className={authMode === 'signup' ? 'bg-[#1b4332] hover:bg-[#2d6a4f]' : 'bg-white'}
+                      onClick={() => setAuthMode('signup')}
+                    >
+                      Crear cuenta
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {authMode === 'signup' && (
+                      <div>
+                        <Label htmlFor="cart-auth-name">Nombre completo</Label>
+                        <Input
+                          id="cart-auth-name"
+                          className="mt-2 bg-white"
+                          value={authFullName}
+                          onChange={(event) => setAuthFullName(event.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <Label htmlFor="cart-auth-email">Correo</Label>
+                      <Input
+                        id="cart-auth-email"
+                        type="email"
+                        className="mt-2 bg-white"
+                        value={authEmail}
+                        onChange={(event) => setAuthEmail(event.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cart-auth-password">Contraseña</Label>
+                      <Input
+                        id="cart-auth-password"
+                        type="password"
+                        className="mt-2 bg-white"
+                        value={authPassword}
+                        onChange={(event) => setAuthPassword(event.target.value)}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]"
+                      disabled={isAuthSubmitting || isSubmitting}
+                      onClick={handleAuthSubmit}
+                    >
+                      {isAuthSubmitting ? 'Validando...' : 'Continuar compra'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </ScrollArea>
