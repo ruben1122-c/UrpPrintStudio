@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Instagram } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -108,34 +108,24 @@ export function Footer() {
             {/* Social Media */}
             <div className="mt-6">
               <h4 className="font-semibold mb-3">Síguenos</h4>
-              <div className="flex gap-3">
-                <span
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
-                  aria-label="Facebook — próximamente"
-                  title="Próximamente"
-                >
-                  <Facebook className="w-4 h-4" />
-                </span>
-                <span
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
-                  aria-label="Instagram — próximamente"
-                  title="Próximamente"
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href="https://www.instagram.com/madebyurp"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center transition-colors hover:bg-white hover:text-[#1b4332]"
+                  aria-label="Instagram @madebyurp"
+                  title="@madebyurp"
                 >
                   <Instagram className="w-4 h-4" />
-                </span>
+                </a>
                 <span
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
-                  aria-label="LinkedIn — próximamente"
-                  title="Próximamente"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs text-gray-300"
+                  aria-label="Facebook MadeBy Urp"
+                  title="MadeBy Urp"
                 >
-                  <Linkedin className="w-4 h-4" />
-                </span>
-                <span
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center opacity-50"
-                  aria-label="Twitter — próximamente"
-                  title="Próximamente"
-                >
-                  <Twitter className="w-4 h-4" />
+                  <Facebook className="w-4 h-4" />
+                  MadeBy Urp
                 </span>
               </div>
             </div>

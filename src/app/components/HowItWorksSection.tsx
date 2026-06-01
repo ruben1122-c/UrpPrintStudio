@@ -7,7 +7,7 @@ const steps = [
     icon: MousePointerClick,
     title: 'Elegir producto',
     description:
-      'Selecciona el tipo de souvenir que quieres personalizar: camiseta, taza, póster, diploma, tote bag o stickers.',
+      'Selecciona el tipo de souvenir que quieres personalizar: camiseta, taza, póster, pin URP, tote bag o stickers.',
     color: 'bg-blue-500',
   },
   {
@@ -21,9 +21,9 @@ const steps = [
   {
     number: '03',
     icon: Download,
-    title: 'Descargar o imprimir',
+    title: 'Agregar al carrito',
     description:
-      'Descarga tu diseño digital o solicita la impresión física con entrega a domicilio.',
+      'Descarga tu diseño o agrégalo al carrito para finalizar un pedido con tus souvenirs.',
     color: 'bg-purple-500',
   },
 ];
@@ -84,7 +84,7 @@ export function HowItWorksSection() {
         {/* CTA */}
         <div className="text-center mt-12">
           <p className="text-gray-600 mb-4">
-            ¿Listo para comenzar? Es gratis y toma solo minutos
+            ¿Listo para comenzar? Personaliza tu souvenir en minutos
           </p>
           <button
             onClick={() => document.getElementById('personalizar')?.scrollIntoView({ behavior: 'smooth' })}

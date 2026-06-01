@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { CheckCircle2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { CheckCircle2, LockKeyhole, Minus, Plus, ShoppingCart, ShieldCheck, Trash2 } from 'lucide-react';
 import { getCurrentSession, onAuthStateChange, signInWithEmail, signUpWithEmail } from '@/services/auth';
 import { createCartCheckout } from '@/services/orders';
 import { useCart } from '../cart/CartContext';
@@ -40,6 +40,17 @@ function formatOptions(options: Record<string, string>) {
     .filter(([, value]) => Boolean(value))
     .map(([key, value]) => `${key}: ${value}`)
     .join(' · ');
+}
+
+function StepBadge({ number, label }: { number: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs font-semibold uppercase text-gray-500">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1b4332] text-white">
+        {number}
+      </span>
+      {label}
+    </div>
+  );
 }
 
 export function CartPanel({ className, label }: CartPanelProps) {
@@ -216,21 +227,26 @@ export function CartPanel({ className, label }: CartPanelProps) {
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Carrito</SheetTitle>
-          <SheetDescription>Revisa tus souvenirs antes de crear un solo pedido.</SheetDescription>
+          <SheetDescription>Revisa tus souvenirs y finaliza un solo pedido.</SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1 px-4">
           {items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-              Tu carrito está vacío.
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+              <ShoppingCart className="mx-auto mb-3 h-8 w-8 text-gray-400" />
+              <div className="font-semibold text-gray-900">Tu carrito está vacío</div>
+              <p className="mt-1 text-sm text-gray-500">
+                Agrega un souvenir personalizado para continuar.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
+              <StepBadge number="1" label="Souvenirs seleccionados" />
               {items.map((item) => {
                 const options = formatOptions(item.productOptions);
 
                 return (
-                  <div key={item.id} className="rounded-lg border border-gray-200 p-3">
+                  <div key={item.id} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                     <div className="flex gap-3">
                       <div className="h-16 w-16 overflow-hidden rounded-md bg-gray-100">
                         {item.productImageUrl ? (
@@ -300,7 +316,8 @@ export function CartPanel({ className, label }: CartPanelProps) {
           {items.length > 0 && (
             <div className="mt-6 space-y-4">
               <Separator />
-              <div className="space-y-3">
+              <StepBadge number="2" label="Datos de contacto" />
+              <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
                 <div>
                   <Label htmlFor="cart-name">Nombre</Label>
                   <Input
@@ -331,32 +348,42 @@ export function CartPanel({ className, label }: CartPanelProps) {
                 </div>
               </div>
               {showAuthForm && !session && (
-                <div className="rounded-lg border border-[#1b4332]/20 bg-[#1b4332]/5 p-4">
-                  <div className="mb-3">
-                    <div className="font-semibold text-gray-900">Accede para finalizar</div>
-                    <div className="text-sm text-gray-600">
-                      Tu cuenta se crea confirmada y no requiere validar correo.
+                <div className="rounded-lg border border-[#1b4332]/20 bg-gradient-to-br from-[#1b4332]/10 to-white p-4">
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1b4332] text-white">
+                      <LockKeyhole className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <StepBadge number="3" label="Acceso para finalizar" />
+                      <div className="mt-2 font-semibold text-gray-900">Completa tu compra con una cuenta</div>
+                      <div className="text-sm text-gray-600">
+                        No necesitas validar correo por bandeja para continuar.
+                      </div>
                     </div>
                   </div>
-                  <div className="mb-4 grid grid-cols-2 gap-2">
-                    <Button
+                  <div className="mb-4 grid grid-cols-2 rounded-lg bg-white p-1 shadow-sm">
+                    <button
                       type="button"
-                      size="sm"
-                      variant={authMode === 'signin' ? 'default' : 'outline'}
-                      className={authMode === 'signin' ? 'bg-[#1b4332] hover:bg-[#2d6a4f]' : 'bg-white'}
+                      className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                        authMode === 'signin'
+                          ? 'bg-[#1b4332] text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
                       onClick={() => setAuthMode('signin')}
                     >
                       Iniciar sesión
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      size="sm"
-                      variant={authMode === 'signup' ? 'default' : 'outline'}
-                      className={authMode === 'signup' ? 'bg-[#1b4332] hover:bg-[#2d6a4f]' : 'bg-white'}
+                      className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                        authMode === 'signup'
+                          ? 'bg-[#1b4332] text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
                       onClick={() => setAuthMode('signup')}
                     >
                       Crear cuenta
-                    </Button>
+                    </button>
                   </div>
                   <div className="space-y-3">
                     {authMode === 'signup' && (
@@ -365,6 +392,7 @@ export function CartPanel({ className, label }: CartPanelProps) {
                         <Input
                           id="cart-auth-name"
                           className="mt-2 bg-white"
+                          placeholder="Ej: Juan Pérez García"
                           value={authFullName}
                           onChange={(event) => setAuthFullName(event.target.value)}
                         />
@@ -376,6 +404,7 @@ export function CartPanel({ className, label }: CartPanelProps) {
                         id="cart-auth-email"
                         type="email"
                         className="mt-2 bg-white"
+                        placeholder="Ej: alumno@urp.edu.pe"
                         value={authEmail}
                         onChange={(event) => setAuthEmail(event.target.value)}
                       />
@@ -386,9 +415,14 @@ export function CartPanel({ className, label }: CartPanelProps) {
                         id="cart-auth-password"
                         type="password"
                         className="mt-2 bg-white"
+                        placeholder="Mínimo 8 caracteres"
                         value={authPassword}
                         onChange={(event) => setAuthPassword(event.target.value)}
                       />
+                    </div>
+                    <div className="flex items-start gap-2 rounded-md bg-white px-3 py-2 text-xs text-gray-600">
+                      <ShieldCheck className="mt-0.5 h-4 w-4 text-[#1b4332]" />
+                      El pedido quedará asociado a tu cuenta para que puedas revisarlo luego.
                     </div>
                     <Button
                       type="button"
