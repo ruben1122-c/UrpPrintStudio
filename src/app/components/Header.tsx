@@ -1,32 +1,41 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { Link } from 'react-router';
 import { Menu, X, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { CartPanel } from './CartPanel';
+import { getCurrentSession, onAuthStateChange } from '@/services/auth';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
   const navItems = [
-    { name: 'Inicio', href: '#inicio' },
-    { name: 'Crear diseño', href: '#personalizar' },
-    { name: 'Productos', href: '#productos' },
-    { name: 'Cuenta', href: '#cuenta' },
-    { name: 'Cómo funciona', href: '#como-funciona' },
-    { name: 'Contacto', href: '#contacto' },
+    { name: 'Inicio', href: '/#inicio' },
+    { name: 'Crear diseño', href: '/#personalizar' },
+    { name: 'Productos', href: '/#productos' },
+    { name: 'Cómo funciona', href: '/#como-funciona' },
+    { name: 'Contacto', href: '/#contacto' },
   ];
+  const accountHref = session ? '/cuenta' : '/login';
+  const accountLabel = session ? 'Mi cuenta' : 'Iniciar sesión';
+
+  useEffect(() => {
+    getCurrentSession()
+      .then(setSession)
+      .catch(() => setSession(null));
+
+    return onAuthStateChange(setSession);
+  }, []);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <a
-            href="#"
+          <Link
+            to="/"
             className="flex items-center cursor-pointer"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
           >
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-lg flex items-center justify-center">
@@ -37,18 +46,18 @@ export function Header() {
                 <span className="text-xs text-gray-600 leading-tight">PrintStudio</span>
               </div>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.name}
-                href={item.href}
+                to={item.href}
                 className="text-gray-700 hover:text-[#1b4332] transition-colors"
               >
                 {item.name}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -56,10 +65,10 @@ export function Header() {
           <div className="hidden md:flex items-center gap-2">
             <CartPanel />
             <Button className="bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
-              <a href="#cuenta">
+              <Link to={accountHref}>
                 <User className="mr-2 h-4 w-4" />
-                Iniciar sesión
-              </a>
+                {accountLabel}
+              </Link>
             </Button>
           </div>
 
@@ -80,21 +89,21 @@ export function Header() {
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-3">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.name}
-                href={item.href}
+                to={item.href}
                 className="block py-2 text-gray-700 hover:text-[#1b4332] transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.name}
-              </a>
+              </Link>
             ))}
-            <CartPanel className="w-full justify-center" label="Carrito" />
+            <CartPanel className="w-full justify-center" label="Carrito" autoOpenFromCheckout={false} />
             <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
-              <a href="#cuenta" onClick={() => setIsMenuOpen(false)}>
+              <Link to={accountHref} onClick={() => setIsMenuOpen(false)}>
                 <User className="mr-2 h-4 w-4" />
-                Iniciar sesión
-              </a>
+                {accountLabel}
+              </Link>
             </Button>
           </div>
         )}

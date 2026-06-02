@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { CheckCircle2, LogOut, Mail, PackageCheck, ShieldCheck, UserCircle2, XCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -20,7 +21,7 @@ function validateAuthField(name: AuthField, value: string): string | null {
       return null;
     case 'password':
       if (!trimmed) return 'La contraseña es obligatoria';
-      if (trimmed.length < 6) return 'Mínimo 6 caracteres';
+      if (trimmed.length < 8) return 'Mínimo 8 caracteres';
       return null;
     case 'fullName':
       if (!trimmed) return 'El nombre es obligatorio';
@@ -29,7 +30,18 @@ function validateAuthField(name: AuthField, value: string): string | null {
   }
 }
 
-export function AuthSection() {
+type AuthSectionProps = {
+  view: 'login' | 'account';
+};
+
+function getAuthRedirect(next: string | null) {
+  if (next === 'checkout') return '/?checkout=1';
+  return '/cuenta';
+}
+
+export function AuthSection({ view }: AuthSectionProps) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -66,6 +78,7 @@ export function AuthSection() {
   }
 
   const isFormValid = authFields.every((name) => !validateAuthField(name, form[name]));
+  const next = searchParams.get('next');
 
   const inputClass = (name: AuthField) => {
     const base = 'mt-2 pr-10';
@@ -106,6 +119,12 @@ export function AuthSection() {
     return () => window.removeEventListener('urp:orders-changed', refreshOrders);
   }, [session]);
 
+  useEffect(() => {
+    if (view === 'login' && session) {
+      navigate(getAuthRedirect(next), { replace: true });
+    }
+  }, [navigate, next, session, view]);
+
   const handleSubmit = async () => {
     setMessage(null);
     setError(null);
@@ -120,9 +139,12 @@ export function AuthSection() {
           throw new Error('Ingresa tu nombre completo para crear tu perfil.');
         }
 
-        const result = await signUpWithEmail(form.email.trim(), form.password, form.fullName.trim());
+        await signUpWithEmail(form.email.trim(), form.password, form.fullName.trim());
+        await signInWithEmail(form.email.trim(), form.password);
         setMessage('Cuenta creada y perfil configurado correctamente.');
       }
+
+      navigate(getAuthRedirect(next), { replace: true });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'No se pudo completar la operación.');
     } finally {
@@ -143,7 +165,7 @@ export function AuthSection() {
   };
 
   return (
-    <section id="cuenta" className="py-16 bg-gray-50">
+    <section className="min-h-[calc(100vh-4rem)] bg-gray-50 py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
@@ -151,13 +173,36 @@ export function AuthSection() {
             <span className="text-sm font-semibold text-[#1b4332]">Cuenta y pedidos</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-            Tu espacio URP PrintStudio
+            {view === 'login' ? 'Ingresa a URP PrintStudio' : 'Tu espacio URP PrintStudio'}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Accede para revisar tus pedidos y guardar tu historial sin bloquear la experiencia de compra.
+            {view === 'login'
+              ? 'Inicia sesión o crea tu cuenta para finalizar compras y consultar pedidos.'
+              : 'Revisa tus datos y el historial de pedidos asociado a tu cuenta.'}
           </p>
         </div>
 
+        {view === 'account' && !session ? (
+          <Card className="mx-auto max-w-xl overflow-hidden border-gray-200 shadow-sm">
+            <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-6 text-white">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/15 mb-4">
+                <UserCircle2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-2xl font-bold">Acceso requerido</h3>
+              <p className="mt-2 text-sm text-white/80">
+                Inicia sesión para ver tus pedidos y datos de cuenta.
+              </p>
+            </div>
+            <div className="space-y-4 p-6">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Puedes seguir navegando y agregando productos al carrito sin iniciar sesión. Solo te pediremos acceso al finalizar la compra.
+              </div>
+              <Button className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]" asChild>
+                <Link to="/login?next=cuenta">Iniciar sesión</Link>
+              </Button>
+            </div>
+          </Card>
+        ) : (
         <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
           <Card className="overflow-hidden border-gray-200 shadow-sm">
             <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-6 text-white">
@@ -166,7 +211,9 @@ export function AuthSection() {
               </div>
               <h3 className="text-2xl font-bold">Cuenta URP PrintStudio</h3>
               <p className="mt-2 text-sm text-white/80">
-                Inicia sesión o crea tu cuenta para asociar pedidos a tu perfil.
+                {session
+                  ? 'Tu sesión está activa y lista para finalizar pedidos.'
+                  : 'Inicia sesión o crea tu cuenta para asociar pedidos a tu perfil.'}
               </p>
             </div>
 
@@ -288,7 +335,7 @@ export function AuthSection() {
                       <Input
                         id="auth-password"
                         type="password"
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="Mínimo 8 caracteres"
                         value={form.password}
                         onChange={(event) => setForm({ ...form, password: event.target.value })}
                         onBlur={() => markTouched('password')}
@@ -316,6 +363,9 @@ export function AuthSection() {
                     onClick={handleSubmit}
                   >
                     {isSubmitting ? 'Procesando...' : mode === 'signin' ? 'Entrar' : 'Crear cuenta'}
+                  </Button>
+                  <Button variant="ghost" className="w-full text-gray-600" asChild>
+                    <Link to="/">Volver a la web</Link>
                   </Button>
                 </div>
               )}
@@ -383,6 +433,7 @@ export function AuthSection() {
             </div>
           </Card>
         </div>
+        )}
       </div>
     </section>
   );

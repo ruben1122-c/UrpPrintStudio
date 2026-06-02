@@ -26,22 +26,22 @@ export function Footer() {
             <h3 className="font-bold text-lg mb-4">Enlaces rápidos</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#inicio" className="text-gray-300 hover:text-white transition-colors">
+                <a href="/#inicio" className="text-gray-300 hover:text-white transition-colors">
                   Inicio
                 </a>
               </li>
               <li>
-                <a href="#productos" className="text-gray-300 hover:text-white transition-colors">
+                <a href="/#productos" className="text-gray-300 hover:text-white transition-colors">
                   Productos
                 </a>
               </li>
               <li>
-                <a href="#personalizar" className="text-gray-300 hover:text-white transition-colors">
+                <a href="/#personalizar" className="text-gray-300 hover:text-white transition-colors">
                   Crear diseño
                 </a>
               </li>
               <li>
-                <a href="#como-funciona" className="text-gray-300 hover:text-white transition-colors">
+                <a href="/#como-funciona" className="text-gray-300 hover:text-white transition-colors">
                   Cómo funciona
                 </a>
               </li>

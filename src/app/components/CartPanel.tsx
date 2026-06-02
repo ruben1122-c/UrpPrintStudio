@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { CheckCircle2, LockKeyhole, Minus, Plus, ShoppingCart, ShieldCheck, Trash2 } from 'lucide-react';
-import { getCurrentSession, onAuthStateChange, signInWithEmail, signUpWithEmail } from '@/services/auth';
+import { useNavigate, useSearchParams } from 'react-router';
+import { CheckCircle2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { getCurrentSession, onAuthStateChange } from '@/services/auth';
 import { createCartCheckout } from '@/services/orders';
 import { useCart } from '../cart/CartContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -23,6 +24,7 @@ import {
 type CartPanelProps = {
   className?: string;
   label?: string;
+  autoOpenFromCheckout?: boolean;
 };
 
 type CheckoutContact = {
@@ -42,6 +44,28 @@ function formatOptions(options: Record<string, string>) {
     .join(' · ');
 }
 
+const PENDING_CHECKOUT_CONTACT_KEY = 'urp-pending-checkout-contact-v1';
+
+function readPendingCheckoutContact(): CheckoutContact | null {
+  try {
+    const rawContact = window.sessionStorage.getItem(PENDING_CHECKOUT_CONTACT_KEY);
+    if (!rawContact) return null;
+
+    const parsed = JSON.parse(rawContact) as Partial<CheckoutContact>;
+    return {
+      name: typeof parsed.name === 'string' ? parsed.name : '',
+      email: typeof parsed.email === 'string' ? parsed.email : '',
+      phone: typeof parsed.phone === 'string' ? parsed.phone : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePendingCheckoutContact(contact: CheckoutContact) {
+  window.sessionStorage.setItem(PENDING_CHECKOUT_CONTACT_KEY, JSON.stringify(contact));
+}
+
 function StepBadge({ number, label }: { number: string; label: string }) {
   return (
     <div className="flex items-center gap-2 text-xs font-semibold uppercase text-gray-500">
@@ -53,8 +77,12 @@ function StepBadge({ number, label }: { number: string; label: string }) {
   );
 }
 
-export function CartPanel({ className, label }: CartPanelProps) {
+export function CartPanel({ className, label, autoOpenFromCheckout = true }: CartPanelProps) {
   const { items, itemCount, subtotal, clearCart, removeItem, updateQuantity } = useCart();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const checkoutParam = searchParams.get('checkout');
+  const [isOpen, setIsOpen] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -62,12 +90,6 @@ export function CartPanel({ className, label }: CartPanelProps) {
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [showAuthForm, setShowAuthForm] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [authFullName, setAuthFullName] = useState('');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
 
   const firstItem = items[0];
 
@@ -76,8 +98,6 @@ export function CartPanel({ className, label }: CartPanelProps) {
     setCustomerName((current) => current || firstItem.customerName);
     setCustomerEmail((current) => current || firstItem.customerEmail);
     setCustomerPhone((current) => current || firstItem.customerPhone);
-    setAuthFullName((current) => current || firstItem.customerName);
-    setAuthEmail((current) => current || firstItem.customerEmail);
   }, [firstItem]);
 
   useEffect(() => {
@@ -97,6 +117,24 @@ export function CartPanel({ className, label }: CartPanelProps) {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!autoOpenFromCheckout || checkoutParam !== '1') {
+      return;
+    }
+
+    const pendingContact = readPendingCheckoutContact();
+    if (pendingContact) {
+      setCustomerName((current) => current || pendingContact.name);
+      setCustomerEmail((current) => current || pendingContact.email);
+      setCustomerPhone((current) => current || pendingContact.phone);
+    }
+
+    setIsOpen(true);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete('checkout');
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [autoOpenFromCheckout, checkoutParam, searchParams, setSearchParams]);
 
   const canCheckout = useMemo(() => {
     return items.length > 0 && Boolean(customerName.trim()) && Boolean(customerEmail.trim());
@@ -130,6 +168,7 @@ export function CartPanel({ className, label }: CartPanelProps) {
       });
 
       clearCart();
+      window.sessionStorage.removeItem(PENDING_CHECKOUT_CONTACT_KEY);
       setCheckoutMessage(
         `Pedido ${order.order_code} creado correctamente. Total: ${formatMoney(order.total_amount)}.`,
       );
@@ -152,62 +191,21 @@ export function CartPanel({ className, label }: CartPanelProps) {
     }
 
     if (!session) {
-      setShowAuthForm(true);
-      setAuthFullName((current) => current || customerName);
-      setAuthEmail((current) => current || customerEmail);
+      writePendingCheckoutContact({
+        name: customerName.trim(),
+        email: customerEmail.trim(),
+        phone: customerPhone.trim(),
+      });
+      setIsOpen(false);
+      navigate('/login?next=checkout');
       return;
     }
 
     await submitCartOrder();
   };
 
-  const handleAuthSubmit = async () => {
-    setCheckoutMessage(null);
-    setCheckoutError(null);
-
-    const email = authEmail.trim() || customerEmail.trim();
-    const password = authPassword.trim();
-    const fullName = authFullName.trim() || customerName.trim();
-
-    if (!email || !password || (authMode === 'signup' && !fullName)) {
-      setCheckoutError('Completa los datos de acceso para continuar.');
-      return;
-    }
-
-    if (password.length < 8) {
-      setCheckoutError('La contraseña debe tener al menos 8 caracteres.');
-      return;
-    }
-
-    setIsAuthSubmitting(true);
-
-    try {
-      if (authMode === 'signup') {
-        await signUpWithEmail(email, password, fullName);
-        await signInWithEmail(email, password);
-        setCustomerName((current) => current || fullName);
-      } else {
-        await signInWithEmail(email, password);
-      }
-
-      setCustomerEmail((current) => current || email);
-      setShowAuthForm(false);
-      setAuthPassword('');
-      await submitCartOrder({
-        name: customerName.trim() || fullName,
-        email,
-        phone: customerPhone.trim(),
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión.';
-      setCheckoutError(message);
-    } finally {
-      setIsAuthSubmitting(false);
-    }
-  };
-
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button
           type="button"
@@ -347,94 +345,6 @@ export function CartPanel({ className, label }: CartPanelProps) {
                   />
                 </div>
               </div>
-              {showAuthForm && !session && (
-                <div className="rounded-lg border border-[#1b4332]/20 bg-gradient-to-br from-[#1b4332]/10 to-white p-4">
-                  <div className="mb-4 flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1b4332] text-white">
-                      <LockKeyhole className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <StepBadge number="3" label="Acceso para finalizar" />
-                      <div className="mt-2 font-semibold text-gray-900">Completa tu compra con una cuenta</div>
-                      <div className="text-sm text-gray-600">
-                        No necesitas validar correo por bandeja para continuar.
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mb-4 grid grid-cols-2 rounded-lg bg-white p-1 shadow-sm">
-                    <button
-                      type="button"
-                      className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                        authMode === 'signin'
-                          ? 'bg-[#1b4332] text-white shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                      onClick={() => setAuthMode('signin')}
-                    >
-                      Iniciar sesión
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                        authMode === 'signup'
-                          ? 'bg-[#1b4332] text-white shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                      onClick={() => setAuthMode('signup')}
-                    >
-                      Crear cuenta
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {authMode === 'signup' && (
-                      <div>
-                        <Label htmlFor="cart-auth-name">Nombre completo</Label>
-                        <Input
-                          id="cart-auth-name"
-                          className="mt-2 bg-white"
-                          placeholder="Ej: Juan Pérez García"
-                          value={authFullName}
-                          onChange={(event) => setAuthFullName(event.target.value)}
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <Label htmlFor="cart-auth-email">Correo</Label>
-                      <Input
-                        id="cart-auth-email"
-                        type="email"
-                        className="mt-2 bg-white"
-                        placeholder="Ej: alumno@urp.edu.pe"
-                        value={authEmail}
-                        onChange={(event) => setAuthEmail(event.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="cart-auth-password">Contraseña</Label>
-                      <Input
-                        id="cart-auth-password"
-                        type="password"
-                        className="mt-2 bg-white"
-                        placeholder="Mínimo 8 caracteres"
-                        value={authPassword}
-                        onChange={(event) => setAuthPassword(event.target.value)}
-                      />
-                    </div>
-                    <div className="flex items-start gap-2 rounded-md bg-white px-3 py-2 text-xs text-gray-600">
-                      <ShieldCheck className="mt-0.5 h-4 w-4 text-[#1b4332]" />
-                      El pedido quedará asociado a tu cuenta para que puedas revisarlo luego.
-                    </div>
-                    <Button
-                      type="button"
-                      className="w-full bg-[#1b4332] hover:bg-[#2d6a4f]"
-                      disabled={isAuthSubmitting || isSubmitting}
-                      onClick={handleAuthSubmit}
-                    >
-                      {isAuthSubmitting ? 'Validando...' : 'Continuar compra'}
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </ScrollArea>
