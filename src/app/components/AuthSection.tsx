@@ -97,6 +97,12 @@ export function AuthSection({ view }: AuthSectionProps) {
   }, []);
 
   useEffect(() => {
+    if (view !== 'account') {
+      setProfile(null);
+      setOrders([]);
+      return;
+    }
+
     if (!session) {
       setProfile(null);
       setOrders([]);
@@ -117,7 +123,7 @@ export function AuthSection({ view }: AuthSectionProps) {
     window.addEventListener('urp:orders-changed', refreshOrders);
 
     return () => window.removeEventListener('urp:orders-changed', refreshOrders);
-  }, [session]);
+  }, [session, view]);
 
   useEffect(() => {
     if (view === 'login' && session) {
