@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { CheckCircle2, LogOut, Mail, PackageCheck, ShieldCheck, UserCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, LogOut, Mail, PackageCheck, ShieldCheck, UserCircle2, XCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -10,7 +10,7 @@ import { getCurrentSession, getMyProfile, onAuthStateChange, signInWithEmail, si
 import { getMyOrders } from '@/services/orders';
 import type { Profile, UserOrder } from '@/types/database';
 
-type AuthField = 'email' | 'password' | 'fullName';
+type AuthField = 'email' | 'password' | 'confirmPassword' | 'fullName';
 
 function validateAuthField(name: AuthField, value: string): string | null {
   const trimmed = value.trim();
@@ -23,6 +23,8 @@ function validateAuthField(name: AuthField, value: string): string | null {
       if (!trimmed) return 'La contraseña es obligatoria';
       if (trimmed.length < 8) return 'Mínimo 8 caracteres';
       return null;
+    case 'confirmPassword':
+      return trimmed ? null : 'Confirma la contraseña';
     case 'fullName':
       if (!trimmed) return 'El nombre es obligatorio';
       if (/\d/.test(trimmed)) return 'El nombre no puede contener números';
@@ -36,7 +38,9 @@ type AuthSectionProps = {
 
 function getAuthRedirect(next: string | null) {
   if (next === 'checkout') return '/?checkout=1';
-  return '/cuenta';
+  if (next === 'cuenta') return '/cuenta';
+  if (next?.startsWith('/') && !next.startsWith('//')) return next;
+  return '/';
 }
 
 export function AuthSection({ view }: AuthSectionProps) {
@@ -50,10 +54,13 @@ export function AuthSection({ view }: AuthSectionProps) {
     fullName: '',
     email: '',
     password: '',
+    confirmPassword: '',
   });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [touched, setTouched] = useState<Set<string>>(new Set());
 
@@ -66,22 +73,31 @@ export function AuthSection({ view }: AuthSectionProps) {
     });
   };
 
+  const getAuthFieldError = (name: AuthField) => {
+    const baseError = validateAuthField(name, form[name]);
+    if (baseError) return baseError;
+    if (name === 'confirmPassword' && form.password !== form.confirmPassword) {
+      return 'Las contraseñas no coinciden';
+    }
+    return null;
+  };
+
   const fieldErrors: Record<string, string | null> = {};
   const authFields: AuthField[] = mode === 'signup'
-    ? ['fullName', 'email', 'password']
+    ? ['fullName', 'email', 'password', 'confirmPassword']
     : ['email', 'password'];
 
   for (const name of authFields) {
     if (touched.has(name)) {
-      fieldErrors[name] = validateAuthField(name, form[name]);
+      fieldErrors[name] = getAuthFieldError(name);
     }
   }
 
-  const isFormValid = authFields.every((name) => !validateAuthField(name, form[name]));
+  const isFormValid = authFields.every((name) => !getAuthFieldError(name));
   const next = searchParams.get('next');
 
   const inputClass = (name: AuthField) => {
-    const base = 'mt-2 pr-10';
+    const base = name === 'password' || name === 'confirmPassword' ? 'mt-2 pr-20' : 'mt-2 pr-10';
     if (!touched.has(name)) return base;
     return fieldErrors[name]
       ? `${base} border-red-400 focus-visible:ring-red-400`
@@ -176,14 +192,16 @@ export function AuthSection({ view }: AuthSectionProps) {
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
             <UserCircle2 className="h-4 w-4 text-[#1b4332]" />
-            <span className="text-sm font-semibold text-[#1b4332]">Cuenta y pedidos</span>
+            <span className="text-sm font-semibold text-[#1b4332]">
+              {view === 'login' ? 'Acceso a la web' : 'Cuenta y pedidos'}
+            </span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
             {view === 'login' ? 'Ingresa a URP PrintStudio' : 'Tu espacio URP PrintStudio'}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {view === 'login'
-              ? 'Inicia sesión o crea tu cuenta para finalizar compras y consultar pedidos.'
+              ? 'Inicia sesión o crea tu cuenta para entrar a URP PrintStudio.'
               : 'Revisa tus datos y el historial de pedidos asociado a tu cuenta.'}
           </p>
         </div>
@@ -209,17 +227,21 @@ export function AuthSection({ view }: AuthSectionProps) {
             </div>
           </Card>
         ) : (
-        <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
+        <div className={view === 'account'
+          ? 'grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start'
+          : 'mx-auto grid max-w-xl gap-8 items-start'}>
           <Card className="overflow-hidden border-gray-200 shadow-sm">
             <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-6 text-white">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/15 mb-4">
                 <UserCircle2 className="h-6 w-6" />
               </div>
-              <h3 className="text-2xl font-bold">Cuenta URP PrintStudio</h3>
+              <h3 className="text-2xl font-bold">
+                {view === 'login' ? 'Acceso URP PrintStudio' : 'Cuenta URP PrintStudio'}
+              </h3>
               <p className="mt-2 text-sm text-white/80">
                 {session
                   ? 'Tu sesión está activa y lista para finalizar pedidos.'
-                  : 'Inicia sesión o crea tu cuenta para asociar pedidos a tu perfil.'}
+                  : 'Inicia sesión o crea tu cuenta para entrar a la web.'}
               </p>
             </div>
 
@@ -280,7 +302,7 @@ export function AuthSection({ view }: AuthSectionProps) {
                       <ShieldCheck className="mt-0.5 h-5 w-5 text-[#1b4332]" />
                       <p className="text-sm text-gray-600">
                         {mode === 'signin'
-                          ? 'Usa tus credenciales para consultar tus pedidos guardados.'
+                          ? 'Usa tus credenciales para entrar a la web.'
                           : 'Tu cuenta queda lista para comprar sin validar el correo por bandeja.'}
                       </p>
                     </div>
@@ -340,24 +362,66 @@ export function AuthSection({ view }: AuthSectionProps) {
                     <div className="relative">
                       <Input
                         id="auth-password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="Mínimo 8 caracteres"
                         value={form.password}
                         onChange={(event) => setForm({ ...form, password: event.target.value })}
                         onBlur={() => markTouched('password')}
                         className={inputClass('password')}
                       />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowPassword((current) => !current)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                       {touched.has('password') &&
                         (fieldErrors.password ? (
-                          <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
+                          <XCircle className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
                         ) : (
-                          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                          <CheckCircle2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
                         ))}
                     </div>
                     {touched.has('password') && fieldErrors.password && (
                       <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>
                     )}
                   </div>
+
+                  {mode === 'signup' && (
+                    <div>
+                      <Label htmlFor="auth-confirm-password">Confirmar contraseña</Label>
+                      <div className="relative">
+                        <Input
+                          id="auth-confirm-password"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="Repite tu contraseña"
+                          value={form.confirmPassword}
+                          onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
+                          onBlur={() => markTouched('confirmPassword')}
+                          className={inputClass('confirmPassword')}
+                        />
+                        <button
+                          type="button"
+                          aria-label={showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowConfirmPassword((current) => !current)}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                        {touched.has('confirmPassword') &&
+                          (fieldErrors.confirmPassword ? (
+                            <XCircle className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
+                          ) : (
+                            <CheckCircle2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                          ))}
+                      </div>
+                      {touched.has('confirmPassword') && fieldErrors.confirmPassword && (
+                        <p className="mt-1 text-xs text-red-500">{fieldErrors.confirmPassword}</p>
+                      )}
+                    </div>
+                  )}
 
                   <Button
                     className={
@@ -369,9 +433,6 @@ export function AuthSection({ view }: AuthSectionProps) {
                     onClick={handleSubmit}
                   >
                     {isSubmitting ? 'Procesando...' : mode === 'signin' ? 'Entrar' : 'Crear cuenta'}
-                  </Button>
-                  <Button variant="ghost" className="w-full text-gray-600" asChild>
-                    <Link to="/">Volver a la web</Link>
                   </Button>
                 </div>
               )}
@@ -390,6 +451,7 @@ export function AuthSection({ view }: AuthSectionProps) {
             </div>
           </Card>
 
+          {view === 'account' && (
           <Card className="overflow-hidden border-gray-200 shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 p-6">
               <div>
@@ -438,6 +500,7 @@ export function AuthSection({ view }: AuthSectionProps) {
               )}
             </div>
           </Card>
+          )}
         </div>
         )}
       </div>

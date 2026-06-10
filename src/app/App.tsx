@@ -11,6 +11,7 @@ import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { CartProvider } from './cart/CartContext';
 import type { Product } from '@/types/database';
+import { getCurrentSession, onAuthStateChange } from '@/services/auth';
 
 function ScrollToHash() {
   const location = useLocation();
@@ -47,23 +48,68 @@ function HomePage() {
   );
 }
 
+function WebsiteShell() {
+  return (
+    <CartProvider>
+      <ScrollToHash />
+      <div className="min-h-screen bg-white">
+        <Header />
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<AuthSection view="login" />} />
+            <Route path="/cuenta" element={<AuthSection view="account" />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </CartProvider>
+  );
+}
+
+function AuthGate() {
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'guest'>('loading');
+
+  useEffect(() => {
+    let isActive = true;
+
+    getCurrentSession()
+      .then((session) => {
+        if (isActive) setAuthState(session ? 'authenticated' : 'guest');
+      })
+      .catch(() => {
+        if (isActive) setAuthState('guest');
+      });
+
+    const unsubscribe = onAuthStateChange((session) => {
+      if (isActive) setAuthState(session ? 'authenticated' : 'guest');
+    });
+
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
+  }, []);
+
+  if (authState === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-600">
+        Cargando...
+      </div>
+    );
+  }
+
+  if (authState === 'guest') {
+    return <AuthSection view="login" />;
+  }
+
+  return <WebsiteShell />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <CartProvider>
-        <ScrollToHash />
-        <div className="min-h-screen bg-white">
-          <Header />
-          <main>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<AuthSection view="login" />} />
-              <Route path="/cuenta" element={<AuthSection view="account" />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </CartProvider>
+      <AuthGate />
     </BrowserRouter>
   );
 }

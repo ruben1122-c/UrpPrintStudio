@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Download, ShoppingBag, Sparkles, Upload, XCircle } from 'lucide-react';
-import { toPng } from 'html-to-image';
+import { CheckCircle2, Download, ShoppingBag, SlidersHorizontal, Sparkles, Upload, XCircle } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useCart } from '../cart/CartContext';
+import { renderProductDesign } from '../utils/renderProductDesign';
 import { getFirstActiveProduct, getFirstTemplateForProduct, getProductBySlug } from '@/services/products';
 import type { Product, Template } from '@/types/database';
 import { ProductPreview } from './ProductPreview';
@@ -34,8 +34,8 @@ type ProductCustomizationConfig = {
 };
 
 const DEFAULT_CUSTOMIZATION: ProductCustomizationConfig = {
-  exactSouvenirs: ['Souvenir personalizado'],
-  options: [{ key: 'acabado', label: 'Acabado', values: ['Clásico'] }],
+  exactSouvenirs: [],
+  options: [],
 };
 
 /**
@@ -45,47 +45,48 @@ const DEFAULT_CUSTOMIZATION: ProductCustomizationConfig = {
  */
 const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
   camisetas: {
-    exactSouvenirs: ['Camiseta clásica', 'Camiseta oversize'],
+    exactSouvenirs: [],
     options: [
-      { key: 'color', label: 'Color', values: ['Blanco', 'Negro', 'Verde'] },
+      { key: 'tipo', label: 'Tipo de polo', values: ['Clásico', 'Oversize'] },
       { key: 'talla', label: 'Talla', values: ['S', 'M', 'L', 'XL'] },
-      { key: 'fit', label: 'Fit', values: ['Regular', 'Oversize'] },
     ],
   },
   tazas: {
-    exactSouvenirs: ['Taza blanca', 'Taza mágica'],
-    options: [{ key: 'capacidad', label: 'Capacidad', values: ['11 oz', '15 oz'] }],
+    exactSouvenirs: [],
+    options: [],
   },
   posters: {
-    exactSouvenirs: ['Poster egresado', 'Poster promoción'],
+    exactSouvenirs: [],
     options: [
       { key: 'tamaño', label: 'Tamaño', values: ['A4', 'A3'] },
       { key: 'orientación', label: 'Orientación', values: ['Vertical', 'Horizontal'] },
     ],
   },
   cuadros: {
-    exactSouvenirs: ['Cuadro académico', 'Cuadro promocional'],
+    exactSouvenirs: [],
     options: [
-      { key: 'tipo', label: 'Tipo de cuadro', values: ['Académico', 'Minimalista', 'Promoción'] },
-      { key: 'tamaño', label: 'Tamaño', values: ['A4', 'A3', '30x40 cm'] },
-      { key: 'marco', label: 'Color de marco', values: ['Negro', 'Blanco', 'Verde URP', 'Madera'] },
+      { key: 'tamaño', label: 'Tamaño del cuadro', values: ['A4', 'A3', '30x40 cm'] },
     ],
   },
   'pines-urp': {
-    exactSouvenirs: ['Pin redondo URP', 'Pin escudo URP'],
+    exactSouvenirs: [],
     options: [
+      { key: 'tipo', label: 'Tipo de pin', values: ['Redondo URP', 'Escudo URP'] },
       { key: 'tamaño', label: 'Tamaño', values: ['3 cm', '5 cm'] },
       { key: 'acabado', label: 'Acabado', values: ['Mate', 'Brillante'] },
     ],
   },
   'tote-bags': {
-    exactSouvenirs: ['Tote natural', 'Tote negra'],
-    options: [{ key: 'tamaño', label: 'Tamaño', values: ['Mediana', 'Grande'] }],
+    exactSouvenirs: [],
+    options: [
+      { key: 'tipo', label: 'Tipo de tote bag', values: ['Natural', 'Negra'] },
+      { key: 'tamaño', label: 'Tamaño', values: ['Mediana', 'Grande'] },
+    ],
   },
   stickers: {
-    exactSouvenirs: ['Sticker individual', 'Pack stickers'],
+    exactSouvenirs: [],
     options: [
-      { key: 'pack', label: 'Pack', values: ['1 unidad', 'Pack x6', 'Pack x12'] },
+      { key: 'pack', label: 'Cantidad del pack', values: ['1 unidad', 'Pack x6', 'Pack x12'] },
       { key: 'acabado', label: 'Acabado', values: ['Mate', 'Brillante'] },
     ],
   },
@@ -105,6 +106,122 @@ function getDefaultOptions(config: ProductCustomizationConfig): Record<string, s
 
 function formatOptions(options: Record<string, string>) {
   return Object.values(options).filter(Boolean).join(' · ');
+}
+
+function formatLabeledOptions(config: ProductCustomizationConfig, options: Record<string, string>) {
+  return config.options
+    .map((option) => {
+      const value = options[option.key];
+      return value ? `${option.label}: ${value}` : null;
+    })
+    .filter(Boolean)
+    .join(' · ');
+}
+
+interface ProductOptionsBoxProps {
+  config: ProductCustomizationConfig;
+  exactSouvenir: string;
+  onExactSouvenirChange: (souvenir: string) => void;
+  onProductOptionChange: (key: string, value: string) => void;
+  product: Product;
+  productOptions: Record<string, string>;
+}
+
+function ProductOptionsBox({
+  config,
+  exactSouvenir,
+  onExactSouvenirChange,
+  onProductOptionChange,
+  product,
+  productOptions,
+}: ProductOptionsBoxProps) {
+  const labeledOptionsSummary = formatLabeledOptions(config, productOptions);
+  const hasExactSouvenirs = config.exactSouvenirs.length > 0;
+  const hasProductOptions = config.options.length > 0;
+  const hasSelectableOptions = hasExactSouvenirs || hasProductOptions;
+
+  return (
+    <div className="rounded-xl border border-emerald-900/15 bg-emerald-50/40 p-4 shadow-sm space-y-5">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-emerald-900 shadow-sm">
+          <SlidersHorizontal className="h-4 w-4" />
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-900">Opciones del producto</h4>
+          <p className="mt-1 text-sm text-gray-600">
+            Elegí la configuración específica disponible para {product.name}.
+          </p>
+          {labeledOptionsSummary && (
+            <p className="mt-2 text-xs font-medium text-emerald-900">Selección: {labeledOptionsSummary}</p>
+          )}
+        </div>
+      </div>
+
+      {!hasSelectableOptions && (
+        <div className="rounded-lg border border-emerald-900/10 bg-white p-3 text-sm text-gray-600">
+          Este producto no requiere medidas, talla ni variantes adicionales.
+        </div>
+      )}
+
+      {hasExactSouvenirs && (
+        <div>
+          <Label>Producto exacto</Label>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {config.exactSouvenirs.map((souvenir) => (
+              <Button
+                key={souvenir}
+                type="button"
+                size="sm"
+                variant={exactSouvenir === souvenir ? 'default' : 'outline'}
+                aria-pressed={exactSouvenir === souvenir}
+                className={
+                  exactSouvenir === souvenir
+                    ? 'bg-emerald-900 hover:bg-emerald-800'
+                    : 'bg-white'
+                }
+                onClick={() => onExactSouvenirChange(souvenir)}
+              >
+                {souvenir}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasProductOptions && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {config.options.map((option) => (
+            <div key={option.key}>
+              <Label>{option.label}</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {option.values.map((value) => {
+                  const isSelected = productOptions[option.key] === value;
+
+                  return (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={isSelected ? 'default' : 'outline'}
+                      aria-pressed={isSelected}
+                      className={
+                        isSelected
+                          ? 'bg-emerald-900 hover:bg-emerald-800'
+                          : 'bg-white'
+                      }
+                      onClick={() => onProductOptionChange(option.key, value)}
+                    >
+                      {value}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function validateField(name: FieldName, value: string): string | null {
@@ -322,12 +439,19 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
   };
 
   const handleDownloadDesign = async () => {
-    if (!previewRef.current) return;
     setIsDownloading(true);
     try {
-      const dataUrl = await toPng(previewRef.current, {
-        quality: 0.95,
-        backgroundColor: '#ffffff',
+      const dataUrl = await renderProductDesign({
+        product: selectedProduct,
+        template: activeTemplate,
+        data: {
+          nombre: customData.nombre,
+          carrera: customData.carrera,
+          año: customData.año,
+          foto: customData.foto,
+        },
+        exactSouvenir,
+        productOptions,
       });
       const filename = customData.nombre
         ? `diseno-urp-${customData.nombre.trim().replace(/\s+/g, '-').toLowerCase()}.png`
@@ -350,6 +474,13 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     const error = fieldErrors[name];
     if (error) return `${base} border-red-400 focus-visible:ring-red-400`;
     return `${base} border-green-400 focus-visible:ring-green-400`;
+  };
+
+  const handleProductOptionChange = (key: string, value: string) => {
+    setProductOptions((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
   return (
@@ -401,63 +532,14 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
             </h3>
             <div className="space-y-6">
               {selectedProduct && customizationConfig && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
-                  <div>
-                    <Label>Souvenir exacto</Label>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {customizationConfig.exactSouvenirs.map((souvenir) => (
-                        <Button
-                          key={souvenir}
-                          type="button"
-                          size="sm"
-                          variant={exactSouvenir === souvenir ? 'default' : 'outline'}
-                          className={
-                            exactSouvenir === souvenir
-                              ? 'bg-[#1b4332] hover:bg-[#2d6a4f]'
-                              : 'bg-white'
-                          }
-                          onClick={() => setExactSouvenir(souvenir)}
-                        >
-                          {souvenir}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {customizationConfig.options.map((option) => (
-                      <div key={option.key}>
-                        <Label>{option.label}</Label>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {option.values.map((value) => {
-                            const isSelected = productOptions[option.key] === value;
-                            return (
-                              <Button
-                                key={value}
-                                type="button"
-                                size="sm"
-                                variant={isSelected ? 'default' : 'outline'}
-                                className={
-                                  isSelected
-                                    ? 'bg-[#1b4332] hover:bg-[#2d6a4f]'
-                                    : 'bg-white'
-                                }
-                                onClick={() =>
-                                  setProductOptions((prev) => ({
-                                    ...prev,
-                                    [option.key]: value,
-                                  }))
-                                }
-                              >
-                                {value}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <ProductOptionsBox
+                  config={customizationConfig}
+                  exactSouvenir={exactSouvenir}
+                  onExactSouvenirChange={setExactSouvenir}
+                  onProductOptionChange={handleProductOptionChange}
+                  product={selectedProduct}
+                  productOptions={productOptions}
+                />
               )}
 
               {/* Nombre */}
