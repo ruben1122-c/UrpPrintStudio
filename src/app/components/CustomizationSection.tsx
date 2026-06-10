@@ -8,7 +8,8 @@ import { Label } from './ui/label';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useCart } from '../cart/CartContext';
 import { getFirstActiveProduct, getFirstTemplateForProduct, getProductBySlug } from '@/services/products';
-import type { Product } from '@/types/database';
+import type { Product, Template } from '@/types/database';
+import { ProductPreview } from './ProductPreview';
 
 type CustomizationSectionProps = {
   selectedProduct: Product | null;
@@ -21,8 +22,6 @@ const DOWNLOAD_REQUIRED_FIELDS = ['nombre', 'carrera', 'año'] as const;
 
 type FieldName = 'nombre' | 'carrera' | 'año' | 'email' | 'telefono' | 'cantidad';
 
-type PreviewShape = 'apparel' | 'horizontal' | 'vertical' | 'badge';
-
 type ProductOptionConfig = {
   key: string;
   label: string;
@@ -32,28 +31,30 @@ type ProductOptionConfig = {
 type ProductCustomizationConfig = {
   exactSouvenirs: string[];
   options: ProductOptionConfig[];
-  previewShape: PreviewShape;
 };
 
 const DEFAULT_CUSTOMIZATION: ProductCustomizationConfig = {
   exactSouvenirs: ['Souvenir personalizado'],
   options: [{ key: 'acabado', label: 'Acabado', values: ['Clásico'] }],
-  previewShape: 'badge',
 };
 
+/**
+ * Fallback slug→config map.
+ * Used as initial defaults when no Supabase template is loaded yet.
+ * Keep this structured and easy to extend.
+ */
 const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
   camisetas: {
     exactSouvenirs: ['Camiseta clásica', 'Camiseta oversize'],
     options: [
+      { key: 'color', label: 'Color', values: ['Blanco', 'Negro', 'Verde'] },
       { key: 'talla', label: 'Talla', values: ['S', 'M', 'L', 'XL'] },
       { key: 'fit', label: 'Fit', values: ['Regular', 'Oversize'] },
     ],
-    previewShape: 'apparel',
   },
   tazas: {
     exactSouvenirs: ['Taza blanca', 'Taza mágica'],
     options: [{ key: 'capacidad', label: 'Capacidad', values: ['11 oz', '15 oz'] }],
-    previewShape: 'horizontal',
   },
   posters: {
     exactSouvenirs: ['Poster egresado', 'Poster promoción'],
@@ -61,7 +62,6 @@ const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
       { key: 'tamaño', label: 'Tamaño', values: ['A4', 'A3'] },
       { key: 'orientación', label: 'Orientación', values: ['Vertical', 'Horizontal'] },
     ],
-    previewShape: 'vertical',
   },
   'pines-urp': {
     exactSouvenirs: ['Pin redondo URP', 'Pin escudo URP'],
@@ -69,12 +69,10 @@ const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
       { key: 'tamaño', label: 'Tamaño', values: ['3 cm', '5 cm'] },
       { key: 'acabado', label: 'Acabado', values: ['Mate', 'Brillante'] },
     ],
-    previewShape: 'badge',
   },
   'tote-bags': {
     exactSouvenirs: ['Tote natural', 'Tote negra'],
     options: [{ key: 'tamaño', label: 'Tamaño', values: ['Mediana', 'Grande'] }],
-    previewShape: 'apparel',
   },
   stickers: {
     exactSouvenirs: ['Sticker individual', 'Pack stickers'],
@@ -82,16 +80,15 @@ const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
       { key: 'pack', label: 'Pack', values: ['1 unidad', 'Pack x6', 'Pack x12'] },
       { key: 'acabado', label: 'Acabado', values: ['Mate', 'Brillante'] },
     ],
-    previewShape: 'badge',
   },
 };
 
-function getCustomizationConfig(productSlug?: string | null) {
+function getCustomizationConfig(productSlug?: string | null): ProductCustomizationConfig | null {
   if (!productSlug) return null;
   return PRODUCT_CUSTOMIZATIONS[productSlug] ?? DEFAULT_CUSTOMIZATION;
 }
 
-function getDefaultOptions(config: ProductCustomizationConfig) {
+function getDefaultOptions(config: ProductCustomizationConfig): Record<string, string> {
   return config.options.reduce<Record<string, string>>((acc, option) => {
     acc[option.key] = option.values[0] ?? '';
     return acc;
@@ -150,21 +147,48 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
   const [isDownloading, setIsDownloading] = useState(false);
   const [exactSouvenir, setExactSouvenir] = useState('');
   const [productOptions, setProductOptions] = useState<Record<string, string>>({});
+
+  /**
+   * Active template loaded from Supabase when selectedProduct changes.
+   * Used to pass canvas_width/canvas_height/config to ProductPreview so it can
+   * orient proportions and fields correctly. Falls back to null (slug-based shape).
+   *
+   * NOTE: template loading is non-blocking — if it fails the preview still works
+   * using the slug-based fallback in ProductPreview.
+   */
+  const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
+
   const previewRef = useRef<HTMLDivElement>(null);
 
   const customizationConfig = getCustomizationConfig(selectedProduct?.slug);
   const selectedOptionsSummary = formatOptions(productOptions);
 
+  // Reset config and load template when selected product changes
   useEffect(() => {
     if (!customizationConfig) {
       setExactSouvenir('');
       setProductOptions({});
+      setActiveTemplate(null);
       return;
     }
 
     setExactSouvenir(customizationConfig.exactSouvenirs[0] ?? '');
     setProductOptions(getDefaultOptions(customizationConfig));
-  }, [selectedProduct?.slug, customizationConfig]);
+
+    // Load the active template for this product (if it has a real UUID id)
+    if (selectedProduct && uuidPattern.test(selectedProduct.id)) {
+      setIsLoadingTemplate(true);
+      getFirstTemplateForProduct(selectedProduct.id)
+        .then((tpl) => setActiveTemplate(tpl))
+        .catch(() => setActiveTemplate(null))
+        .finally(() => setIsLoadingTemplate(false));
+    } else {
+      // Fallback product (slug-based id from static list) — no template lookup
+      setActiveTemplate(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProduct?.slug]);
 
   // Campos que el usuario ya interactuó (blur) → mostramos validación visual
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -235,7 +259,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
         throw new Error('No hay productos activos en Supabase. Ejecuta primero el script schema.sql.');
       }
 
-      const template = await getFirstTemplateForProduct(product.id);
+      const template = activeTemplate ?? await getFirstTemplateForProduct(product.id);
       const quantity = Math.max(1, Number.parseInt(customData.cantidad, 10) || 1);
       const graduationYear = customData.año
         ? Number.parseInt(customData.año, 10)
@@ -248,18 +272,18 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       ].filter(Boolean).join(' ');
 
       const canvasData = {
-          source: 'web-editor',
-          product_slug: product.slug,
-          template_slug: template?.slug ?? null,
-          exact_souvenir: exactSouvenir || null,
-          product_options: productOptions,
-          fields: {
-            nombre: customData.nombre,
-            carrera: customData.carrera,
-            año: customData.año,
-            hasPhotoPreview: Boolean(customData.foto),
-          },
-        };
+        source: 'web-editor',
+        product_slug: product.slug,
+        template_slug: template?.slug ?? null,
+        exact_souvenir: exactSouvenir || null,
+        product_options: productOptions,
+        fields: {
+          nombre: customData.nombre,
+          carrera: customData.carrera,
+          año: customData.año,
+          hasPhotoPreview: Boolean(customData.foto),
+        },
+      };
 
       addItem({
         productId: product.id,
@@ -320,14 +344,6 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     return `${base} border-green-400 focus-visible:ring-green-400`;
   };
 
-  const previewShape = customizationConfig?.previewShape ?? 'badge';
-  const previewFrameClass: Record<PreviewShape, string> = {
-    apparel: 'w-full max-w-sm min-h-[420px] rounded-3xl',
-    horizontal: 'w-full max-w-md min-h-[300px] rounded-[2rem]',
-    vertical: 'w-full max-w-xs min-h-[500px] rounded-lg',
-    badge: 'w-full max-w-sm aspect-square rounded-full',
-  };
-
   return (
     <section id="personalizar" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -358,6 +374,9 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                   Desde S/. {Number(selectedProduct.base_price).toFixed(0)}
                 </span>
               </div>
+              {isLoadingTemplate && (
+                <span className="text-xs text-gray-400 animate-pulse ml-2">cargando template…</span>
+              )}
             </div>
           ) : (
             <p className="text-lg text-gray-500">
@@ -680,83 +699,27 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
             <h3 className="text-2xl font-bold text-gray-900 mb-6">
               Vista previa
             </h3>
-            <div
-              ref={previewRef}
-              className={`bg-white shadow-lg p-8 flex flex-col items-center justify-center relative overflow-hidden mx-auto ${previewFrameClass[previewShape]}`}
-            >
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: `repeating-linear-gradient(45deg, #1b4332 0, #1b4332 1px, transparent 0, transparent 50%)`,
-                  backgroundSize: '10px 10px',
-                }}></div>
-              </div>
-
-              {/* Content Preview */}
-              <div className="relative z-10 text-center space-y-6 w-full">
-                {/* Logo/Header */}
-                <div className="mb-8">
-                  <div className="w-20 h-20 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-full mx-auto flex items-center justify-center mb-4">
-                    <span className="text-white font-bold text-2xl">URP</span>
-                  </div>
-                  {exactSouvenir && (
-                    <div className="text-sm font-semibold text-[#1b4332] mb-1">
-                      {exactSouvenir}
-                    </div>
-                  )}
-                  <div className="text-sm text-gray-500">Universidad Ricardo Palma</div>
-                </div>
-
-                {/* Photo */}
-                {customData.foto && (
-                  <div className="mb-6">
-                    <img
-                      src={customData.foto}
-                      alt="User"
-                      className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-[#1b4332]"
-                    />
-                  </div>
-                )}
-
-                {/* Name */}
-                <div>
-                  <div className="text-3xl font-bold text-[#1b4332] mb-2">
-                    {customData.nombre || 'Tu nombre aquí'}
-                  </div>
-                </div>
-
-                {/* Career */}
-                <div>
-                  <div className="text-xl text-gray-700">
-                    {customData.carrera || 'Tu carrera'}
-                  </div>
-                </div>
-
-                {/* Year */}
-                <div>
-                  <div className="inline-block px-6 py-2 bg-[#1b4332] text-white rounded-full font-bold">
-                    {customData.año || '20XX'}
-                  </div>
-                </div>
-
-                {/* Decorative Element */}
-                <div className="pt-8 border-t border-gray-200 mt-8">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider">
-                    {selectedProduct
-                      ? `${selectedProduct.name} · URP PrintStudio`
-                      : 'Diseñado con URP PrintStudio'}
-                  </div>
-                  {selectedOptionsSummary && (
-                    <div className="mt-2 text-xs font-medium text-gray-500">
-                      {selectedOptionsSummary}
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="flex justify-center">
+              <ProductPreview
+                previewRef={previewRef}
+                product={selectedProduct}
+                template={activeTemplate}
+                data={{
+                  nombre: customData.nombre,
+                  carrera: customData.carrera,
+                  año: customData.año,
+                  foto: customData.foto,
+                }}
+                exactSouvenir={exactSouvenir}
+                productOptions={productOptions}
+              />
             </div>
             <p className="text-sm text-gray-500 mt-4 text-center">
               ✨ El diseño se actualiza automáticamente mientras escribes
             </p>
+            {selectedOptionsSummary && (
+              <p className="text-xs text-center text-gray-400 mt-1">{selectedOptionsSummary}</p>
+            )}
           </Card>
         </div>
       </div>
