@@ -34,6 +34,7 @@ const SLUG_SHAPE: Record<string, PreviewShape> = {
   'tote-bags': 'apparel',
   tazas: 'horizontal',
   posters: 'vertical',
+  cuadros: 'vertical',
   'pines-urp': 'badge',
   stickers: 'badge',
 };
@@ -91,6 +92,14 @@ function formatOptions(options: Record<string, string>) {
   return Object.values(options).filter(Boolean).join(' · ');
 }
 
+function getOption(options: Record<string, string>, keys: string[]) {
+  for (const key of keys) {
+    if (options[key]) return options[key];
+  }
+
+  return '';
+}
+
 function getNameFontSize(name: string) {
   const length = name.trim().length;
   if (length <= 14) return 21;
@@ -104,6 +113,14 @@ function getCareerFontSize(career: string) {
   if (length <= 24) return 12;
   if (length <= 42) return 10.5;
   return 9.5;
+}
+
+function getFrameNameFontSize(name: string) {
+  const length = name.trim().length;
+  if (length <= 16) return 25;
+  if (length <= 26) return 21;
+  if (length <= 36) return 17;
+  return 14;
 }
 
 function URPHeader({ souvenir, colorClass = 'text-[#1b4332]' }: { souvenir: string; colorClass?: string }) {
@@ -361,6 +378,125 @@ function PosterPreview({
   );
 }
 
+function getFrameColors(frameColor: string) {
+  const normalized = normalizeOption(frameColor);
+
+  if (normalized.includes('blanco')) {
+    return {
+      frame: '#f8fafc',
+      bevel: '#d1d5db',
+      shadow: 'rgba(15, 23, 42, 0.18)',
+      accent: '#64748b',
+    };
+  }
+
+  if (normalized.includes('verde')) {
+    return {
+      frame: '#1b4332',
+      bevel: '#2d6a4f',
+      shadow: 'rgba(27, 67, 50, 0.28)',
+      accent: '#1b4332',
+    };
+  }
+
+  if (normalized.includes('madera')) {
+    return {
+      frame: '#7c4a28',
+      bevel: '#b77945',
+      shadow: 'rgba(92, 52, 23, 0.25)',
+      accent: '#7c4a28',
+    };
+  }
+
+  return {
+    frame: '#111827',
+    bevel: '#374151',
+    shadow: 'rgba(15, 23, 42, 0.28)',
+    accent: '#1b4332',
+  };
+}
+
+function CuadroPreview({
+  product,
+  data,
+  optionsSummary,
+  productOptions,
+}: {
+  product: Product | null;
+  data: PreviewData;
+  optionsSummary: string;
+  productOptions: Record<string, string>;
+}) {
+  const year = getPreviewYear(data);
+  const name = data.nombre.trim() || 'Nombre del estudiante';
+  const career = data.carrera.trim() || 'Carrera profesional';
+  const frameColor = getOption(productOptions, ['marco', 'color de marco']) || 'Negro';
+  const frameType = getOption(productOptions, ['tipo', 'tipo de cuadro']) || 'Académico';
+  const size = getOption(productOptions, ['tamaño', 'tamano']) || 'A4';
+  const colors = getFrameColors(frameColor);
+  const nameFontSize = getFrameNameFontSize(name);
+
+  return (
+    <div className="flex w-full flex-col items-center">
+      <div
+        className="relative w-full max-w-[320px] rounded-sm p-5 shadow-2xl"
+        style={{
+          background: `linear-gradient(135deg, ${colors.bevel}, ${colors.frame} 18%, ${colors.frame} 82%, ${colors.bevel})`,
+          boxShadow: `0 24px 40px ${colors.shadow}`,
+        }}
+      >
+        <div className="rounded-[2px] border border-black/20 bg-[#f6f1e8] p-5 shadow-inner">
+          <div className="border border-gray-300 bg-[#fffdf8] px-6 py-8 shadow-sm">
+            <div className="flex min-h-[360px] flex-col items-center justify-between text-center">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-500">
+                  Universidad Ricardo Palma
+                </p>
+                <div className="mx-auto mt-4 h-px w-24" style={{ backgroundColor: colors.accent }} />
+              </div>
+
+              <div className="w-full">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: colors.accent }}>
+                  {frameType}
+                </p>
+                <h4
+                  className="mx-auto mt-4 max-w-full font-black uppercase leading-[1.02] text-gray-950"
+                  style={{
+                    fontSize: `${nameFontSize}px`,
+                    overflowWrap: 'anywhere',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {name}
+                </h4>
+                <p className="mx-auto mt-4 max-w-[92%] text-sm font-medium leading-snug text-gray-700">
+                  {career}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: colors.accent }}>
+                  Promo {year || '20XX'}
+                </p>
+                <p className="mt-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                  URP PrintStudio
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="pointer-events-none absolute inset-2 rounded-[2px] border border-white/10"
+          aria-hidden="true"
+        />
+      </div>
+
+      <ProductFooter product={product} optionsSummary={optionsSummary || size} />
+    </div>
+  );
+}
+
 function BadgePreview({ product, data, souvenir }: { product: Product | null; data: PreviewData; souvenir: string }) {
   const year = getPreviewYear(data);
 
@@ -464,6 +600,13 @@ export function ProductPreview({
           />
         ) : shape === 'apparel' ? (
           <ApparelPreview product={product} data={data} souvenir={exactSouvenir} optionsSummary={optionsSummary} />
+        ) : slug === 'cuadros' ? (
+          <CuadroPreview
+            product={product}
+            data={data}
+            optionsSummary={optionsSummary}
+            productOptions={productOptions}
+          />
         ) : slug === 'posters' ? (
           <PosterPreview
             product={product}

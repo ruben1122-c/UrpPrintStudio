@@ -63,6 +63,14 @@ const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
       { key: 'orientación', label: 'Orientación', values: ['Vertical', 'Horizontal'] },
     ],
   },
+  cuadros: {
+    exactSouvenirs: ['Cuadro académico', 'Cuadro promocional'],
+    options: [
+      { key: 'tipo', label: 'Tipo de cuadro', values: ['Académico', 'Minimalista', 'Promoción'] },
+      { key: 'tamaño', label: 'Tamaño', values: ['A4', 'A3', '30x40 cm'] },
+      { key: 'marco', label: 'Color de marco', values: ['Negro', 'Blanco', 'Verde URP', 'Madera'] },
+    ],
+  },
   'pines-urp': {
     exactSouvenirs: ['Pin redondo URP', 'Pin escudo URP'],
     options: [

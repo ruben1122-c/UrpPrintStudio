@@ -44,6 +44,18 @@ const fallbackProducts: Product[] = [
     sort_order: 3,
   },
   {
+    id: 'cuadros',
+    name: 'Cuadro personalizado',
+    slug: 'cuadros',
+    description: 'Cuadro decorativo personalizado para egresados, alumnos o promociones URP.',
+    image_url: null,
+    base_price: 45,
+    digital_download_price: 0,
+    currency: 'PEN',
+    active: true,
+    sort_order: 4,
+  },
+  {
     id: 'pines-urp',
     name: 'Pines URP',
     slug: 'pines-urp',
@@ -53,7 +65,7 @@ const fallbackProducts: Product[] = [
     digital_download_price: 0,
     currency: 'PEN',
     active: true,
-    sort_order: 4,
+    sort_order: 5,
   },
   {
     id: 'tote-bags',
@@ -65,7 +77,7 @@ const fallbackProducts: Product[] = [
     digital_download_price: 0,
     currency: 'PEN',
     active: true,
-    sort_order: 5,
+    sort_order: 6,
   },
   {
     id: 'stickers',
@@ -77,7 +89,7 @@ const fallbackProducts: Product[] = [
     digital_download_price: 0,
     currency: 'PEN',
     active: true,
-    sort_order: 6,
+    sort_order: 7,
   },
 ];
 
@@ -140,11 +152,23 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
               onClick={() => onSelectProduct(product)}
             >
               <div className="relative h-64 overflow-hidden">
-                <ImageWithFallback
-                  src={product.image_url ?? ''}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                />
+                {product.image_url ? (
+                  <ImageWithFallback
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[#f6f1e8] transition-transform duration-300 group-hover:scale-105">
+                    <div className="flex h-40 w-28 items-center justify-center border-[10px] border-[#111827] bg-white shadow-xl">
+                      <div className="text-center">
+                        <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#1b4332]">URP</div>
+                        <div className="mt-2 h-px w-12 bg-[#1b4332]" />
+                        <div className="mt-2 text-[10px] font-semibold text-gray-500">PrintStudio</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 {selectedProduct?.id === product.id && (
                   <div className="absolute top-4 right-4 bg-[#1b4332] text-white px-3 py-1 rounded-full text-sm font-semibold">
