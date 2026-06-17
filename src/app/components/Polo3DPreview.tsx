@@ -308,7 +308,7 @@ function PoloScene({ data }: Polo3DPreviewProps) {
 
 export function Polo3DPreview({ data }: Polo3DPreviewProps) {
   return (
-    <div className="relative h-[430px] w-full max-w-full overflow-hidden rounded-2xl bg-white sm:h-[480px]">
+    <div className="relative h-[380px] w-full max-w-full overflow-hidden rounded-2xl bg-white sm:h-[480px]">
       <Suspense fallback={<LoadingPreview />}>
         <PoloScene data={data} />
       </Suspense>

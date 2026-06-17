@@ -12,7 +12,7 @@ export function Header() {
 
   const navItems = [
     { name: 'Inicio', href: '/#inicio' },
-    { name: 'Crear diseño', href: '/#personalizar' },
+    { name: 'Crear diseño', href: '/#productos' },
     { name: 'Productos', href: '/#productos' },
     { name: 'Cómo funciona', href: '/#como-funciona' },
     { name: 'Contacto', href: '/#contacto' },

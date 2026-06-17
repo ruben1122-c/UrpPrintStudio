@@ -411,7 +411,8 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       productOptions,
       pendingAction,
     });
-    navigate(`/login?next=${encodeURIComponent('/#personalizar')}`);
+    const nextPath = selectedProduct?.slug ? `/personalizar/${selectedProduct.slug}` : '/#productos';
+    navigate(`/login?next=${encodeURIComponent(nextPath)}`);
   };
 
   const ensureAuthenticated = async (pendingAction: CustomizationDraftAction) => {
@@ -562,6 +563,34 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       [key]: value,
     }));
   };
+
+  if (!selectedProduct) {
+    return (
+      <section id="personalizar" className="bg-white py-14 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#1b4332]/10 px-4 py-2">
+            <Sparkles className="h-4 w-4 text-[#1b4332]" />
+            <span className="text-sm font-semibold text-[#1b4332]">Editor en tiempo real</span>
+          </div>
+          <Card className="p-6 sm:p-8">
+            <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+              Elige un producto para personalizar
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-gray-600 sm:text-base">
+              Selecciona un producto del catálogo para abrir su editor con las opciones y la vista previa correspondientes.
+            </p>
+            <Button
+              type="button"
+              className="mt-6 h-auto min-h-10 whitespace-normal bg-[#1b4332] px-6 hover:bg-[#2d6a4f]"
+              onClick={() => navigate('/#productos')}
+            >
+              Ver productos
+            </Button>
+          </Card>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="personalizar" className="bg-white py-14 sm:py-16 lg:py-20">

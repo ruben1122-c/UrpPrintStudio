@@ -20,7 +20,7 @@ export function HeroSection() {
               <Button 
                 size="lg" 
                 className="w-full bg-white text-[#1b4332] hover:bg-gray-100 sm:w-auto"
-                onClick={() => document.getElementById('personalizar')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 Empieza ahora
                 <ArrowRight className="ml-2 h-5 w-5" />

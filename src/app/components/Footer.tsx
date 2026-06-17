@@ -36,7 +36,7 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/#personalizar" className="text-gray-300 hover:text-white transition-colors">
+                <a href="/#productos" className="text-gray-300 hover:text-white transition-colors">
                   Crear diseño
                 </a>
               </li>

@@ -87,7 +87,7 @@ export function HowItWorksSection() {
             ¿Listo para comenzar? Personaliza tu souvenir en minutos
           </p>
           <button
-            onClick={() => document.getElementById('personalizar')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })}
             className="inline-flex h-auto min-h-10 items-center whitespace-normal rounded-lg bg-[#1b4332] px-6 py-3 font-semibold text-white transition-colors duration-300 hover:bg-[#2d6a4f] sm:px-8"
           >
             Crear mi diseño ahora

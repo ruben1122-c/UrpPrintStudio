@@ -63,7 +63,7 @@ const SLUG_SHAPE: Record<string, PreviewShape> = {
 };
 
 const FRAME_CLASS: Record<PreviewShape, string> = {
-  apparel: 'w-full max-w-sm min-h-[440px] rounded-3xl',
+  apparel: 'w-full max-w-sm min-h-[360px] sm:min-h-[440px] rounded-3xl',
   horizontal: 'w-full max-w-md min-h-[280px] rounded-[2rem]',
   vertical: 'w-full max-w-xs min-h-[480px] rounded-lg',
   badge: 'aspect-square w-full max-w-72 rounded-full',
@@ -632,8 +632,7 @@ export function ProductPreview({
   return (
     <div
       ref={previewRef}
-      className={`relative mx-auto flex max-w-full flex-col items-center justify-center overflow-visible bg-white shadow-lg ${frameClass}`}
-      style={{ padding: shape === 'badge' ? '0' : '2rem' }}
+      className={`relative mx-auto flex max-w-full flex-col items-center justify-center overflow-visible bg-white shadow-lg ${shape === 'badge' ? 'p-0' : 'p-4 sm:p-8'} ${frameClass}`}
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"

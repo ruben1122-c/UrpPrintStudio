@@ -6,7 +6,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getProducts } from '@/services/products';
 import type { Product } from '@/types/database';
 
-const fallbackProducts: Product[] = [
+export const fallbackProducts: Product[] = [
   {
     id: 'camisetas',
     name: 'Camisetas',
@@ -94,9 +94,14 @@ const fallbackProducts: Product[] = [
 ];
 
 type ProductsSectionProps = {
-  selectedProduct: Product | null;
+  selectedProduct?: Product | null;
   onSelectProduct: (product: Product) => void;
 };
+
+export function getFallbackProductBySlug(slug: string | undefined) {
+  if (!slug) return null;
+  return fallbackProducts.find((product) => product.slug === slug) ?? null;
+}
 
 const formatPrice = (product: Product) => `Desde S/. ${Number(product.base_price).toFixed(0)}`;
 
@@ -140,17 +145,18 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-          {products.map((product) => (
-            <Card
-              key={product.id}
-              className={`group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl ${
-                selectedProduct?.id === product.id
-                  ? 'ring-2 ring-[#1b4332] shadow-xl'
-                  : ''
-              }`}
-              onClick={() => onSelectProduct(product)}
-            >
+        <div className="-mx-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+          <div className="flex snap-x snap-mandatory gap-4 sm:grid sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+            {products.map((product) => (
+              <Card
+                key={product.id}
+                className={`group w-[78vw] min-w-[252px] max-w-[320px] shrink-0 snap-start cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl sm:w-auto sm:min-w-0 sm:max-w-none ${
+                  selectedProduct?.id === product.id
+                    ? 'ring-2 ring-[#1b4332] shadow-xl'
+                    : ''
+                }`}
+                onClick={() => onSelectProduct(product)}
+              >
               <div className="relative h-52 overflow-hidden sm:h-60 lg:h-64">
                 {product.image_url ? (
                   <ImageWithFallback
@@ -199,8 +205,9 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
                   </Button>
                 </div>
               </div>
-            </Card>
-          ))}
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </section>
