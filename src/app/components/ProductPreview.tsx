@@ -43,7 +43,7 @@ const FRAME_CLASS: Record<PreviewShape, string> = {
   apparel: 'w-full max-w-sm min-h-[440px] rounded-3xl',
   horizontal: 'w-full max-w-md min-h-[280px] rounded-[2rem]',
   vertical: 'w-full max-w-xs min-h-[480px] rounded-lg',
-  badge: 'w-72 h-72 rounded-full',
+  badge: 'aspect-square w-full max-w-72 rounded-full',
 };
 
 function normalizeOption(value: string | null | undefined) {
@@ -576,7 +576,7 @@ export function ProductPreview({
   return (
     <div
       ref={previewRef}
-      className={`relative mx-auto flex flex-col items-center justify-center overflow-hidden bg-white shadow-lg ${frameClass}`}
+      className={`relative mx-auto flex max-w-full flex-col items-center justify-center overflow-visible bg-white shadow-lg ${frameClass}`}
       style={{ padding: shape === 'badge' ? '0' : '2rem' }}
     >
       <div

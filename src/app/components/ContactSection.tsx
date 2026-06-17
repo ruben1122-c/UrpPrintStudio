@@ -103,10 +103,10 @@ export function ContactSection() {
   };
 
   return (
-    <section id="contacto" className="py-20 bg-gray-50">
+    <section id="contacto" className="bg-gray-50 py-14 sm:py-16 lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="mb-10 text-center sm:mb-12">
             <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
               <MessageSquare className="w-4 h-4 text-[#1b4332]" />
               <span className="text-sm font-semibold text-[#1b4332]">Contacto</span>
@@ -114,12 +114,12 @@ export function ContactSection() {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Envíanos tu consulta
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-base text-gray-600 sm:text-lg">
               ¿Tienes dudas sobre productos, pedidos o personalización? Escríbenos.
             </p>
           </div>
 
-          <Card className="p-8">
+          <Card className="p-4 sm:p-6 lg:p-8">
             <div className="space-y-6">
               <div>
                 <Label htmlFor="contact-name">
@@ -147,7 +147,7 @@ export function ContactSection() {
                 )}
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="contact-email">
                     Correo <span className="text-red-400">*</span>
@@ -224,7 +224,7 @@ export function ContactSection() {
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   onBlur={() => markTouched('message')}
-                  className={`mt-2 ${touched.has('message') ? (fieldErrors.message ? 'border-red-400 focus-visible:ring-red-400' : 'border-green-400 focus-visible:ring-green-400') : ''}`}
+                  className={`mt-2 min-h-28 ${touched.has('message') ? (fieldErrors.message ? 'border-red-400 focus-visible:ring-red-400' : 'border-green-400 focus-visible:ring-green-400') : ''}`}
                 />
                 {touched.has('message') && fieldErrors.message && (
                   <p className="mt-1 text-xs text-red-500">{fieldErrors.message}</p>

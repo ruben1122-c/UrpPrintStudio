@@ -30,26 +30,26 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section id="como-funciona" className="py-20 bg-gray-50">
+    <section id="como-funciona" className="bg-gray-50 py-14 sm:py-16 lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <div className="mb-10 text-center sm:mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             ¿Cómo funciona?
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-base text-gray-600 sm:text-lg">
             Tres simples pasos para crear tu souvenir universitario perfecto
           </p>
         </div>
 
         {/* Steps */}
-        <div className="grid md:grid-cols-3 gap-8 relative">
+        <div className="relative grid gap-5 md:grid-cols-3 md:gap-8">
           {/* Connection Lines (hidden on mobile) */}
           <div className="hidden md:block absolute top-20 left-0 right-0 h-0.5 bg-gray-300 z-0" style={{ top: '80px' }}></div>
 
           {steps.map((step, index) => (
             <div key={index} className="relative z-10">
-              <Card className="p-8 h-full hover:shadow-xl transition-shadow duration-300">
+              <Card className="h-full p-5 transition-shadow duration-300 hover:shadow-xl sm:p-8">
                 {/* Step Number */}
                 <div className="flex items-center mb-6">
                   <div className={`${step.color} text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl`}>
@@ -63,7 +63,7 @@ export function HowItWorksSection() {
                 </div>
 
                 {/* Content */}
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                <h3 className="mb-3 text-xl font-bold text-gray-900 sm:text-2xl">
                   {step.title}
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
@@ -88,7 +88,7 @@ export function HowItWorksSection() {
           </p>
           <button
             onClick={() => document.getElementById('personalizar')?.scrollIntoView({ behavior: 'smooth' })}
-            className="inline-flex items-center px-8 py-3 bg-[#1b4332] text-white rounded-lg hover:bg-[#2d6a4f] transition-colors duration-300 font-semibold"
+            className="inline-flex h-auto min-h-10 items-center whitespace-normal rounded-lg bg-[#1b4332] px-6 py-3 font-semibold text-white transition-colors duration-300 hover:bg-[#2d6a4f] sm:px-8"
           >
             Crear mi diseño ahora
             <MousePointerClick className="ml-2 h-5 w-5" />

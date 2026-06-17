@@ -125,14 +125,14 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
   }, []);
 
   return (
-    <section id="productos" className="py-20 bg-gray-50">
+    <section id="productos" className="bg-gray-50 py-14 sm:py-16 lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="mb-10 text-center sm:mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Nuestros Productos
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-base text-gray-600 sm:text-lg">
             {isLoading
               ? 'Cargando productos disponibles...'
               : 'Selecciona el producto que quieres personalizar y hazlo tuyo'}
@@ -140,7 +140,7 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
           {products.map((product) => (
             <Card
               key={product.id}
@@ -151,7 +151,7 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
               }`}
               onClick={() => onSelectProduct(product)}
             >
-              <div className="relative h-64 overflow-hidden">
+              <div className="relative h-52 overflow-hidden sm:h-60 lg:h-64">
                 {product.image_url ? (
                   <ImageWithFallback
                     src={product.image_url}
@@ -171,17 +171,17 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 {selectedProduct?.id === product.id && (
-                  <div className="absolute top-4 right-4 bg-[#1b4332] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  <div className="absolute right-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full bg-[#1b4332] px-3 py-1 text-xs font-semibold text-white sm:right-4 sm:top-4 sm:text-sm">
                     ✓ Seleccionado
                   </div>
                 )}
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   {product.name}
                 </h3>
-                <p className="text-gray-600 mb-4">{product.description}</p>
-                <div className="flex items-center justify-between">
+                <p className="mb-4 text-sm text-gray-600 sm:text-base">{product.description}</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-lg font-bold text-[#1b4332]">
                     {formatPrice(product)}
                   </span>
@@ -190,8 +190,8 @@ export function ProductsSection({ selectedProduct, onSelectProduct }: ProductsSe
                     variant={selectedProduct?.id === product.id ? 'default' : 'outline'}
                     className={
                       selectedProduct?.id === product.id
-                        ? 'bg-[#1b4332] hover:bg-[#2d6a4f]'
-                        : ''
+                        ? 'h-auto min-h-9 w-full whitespace-normal bg-[#1b4332] hover:bg-[#2d6a4f] sm:w-auto'
+                        : 'h-auto min-h-9 w-full whitespace-normal sm:w-auto'
                     }
                   >
                     <ShoppingBag className="mr-2 h-4 w-4" />

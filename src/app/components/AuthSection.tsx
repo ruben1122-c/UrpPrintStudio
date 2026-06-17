@@ -187,19 +187,19 @@ export function AuthSection({ view }: AuthSectionProps) {
   };
 
   return (
-    <section className="min-h-[calc(100vh-4rem)] bg-gray-50 py-12 md:py-16">
+    <section className="min-h-[calc(100vh-4rem)] bg-gray-50 py-8 sm:py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center">
+        <div className="mb-8 text-center sm:mb-10">
           <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
             <UserCircle2 className="h-4 w-4 text-[#1b4332]" />
             <span className="text-sm font-semibold text-[#1b4332]">
               {view === 'login' ? 'Acceso a la web' : 'Cuenta y pedidos'}
             </span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+          <h2 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl">
             {view === 'login' ? 'Ingresa a URP PrintStudio' : 'Tu espacio URP PrintStudio'}
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-base text-gray-600 sm:text-lg">
             {view === 'login'
               ? 'Inicia sesión o crea tu cuenta para entrar a URP PrintStudio.'
               : 'Revisa tus datos y el historial de pedidos asociado a tu cuenta.'}
@@ -208,16 +208,16 @@ export function AuthSection({ view }: AuthSectionProps) {
 
         {view === 'account' && !session ? (
           <Card className="mx-auto max-w-xl overflow-hidden border-gray-200 shadow-sm">
-            <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-6 text-white">
+            <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-5 text-white sm:p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/15 mb-4">
                 <UserCircle2 className="h-6 w-6" />
               </div>
-              <h3 className="text-2xl font-bold">Acceso requerido</h3>
+              <h3 className="text-xl font-bold sm:text-2xl">Acceso requerido</h3>
               <p className="mt-2 text-sm text-white/80">
                 Inicia sesión para ver tus pedidos y datos de cuenta.
               </p>
             </div>
-            <div className="space-y-4 p-6">
+            <div className="space-y-4 p-4 sm:p-6">
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
                 Puedes seguir navegando y agregando productos al carrito sin iniciar sesión. Solo te pediremos acceso al finalizar la compra.
               </div>
@@ -228,14 +228,14 @@ export function AuthSection({ view }: AuthSectionProps) {
           </Card>
         ) : (
         <div className={view === 'account'
-          ? 'grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start'
+          ? 'grid items-start gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8'
           : 'mx-auto grid max-w-xl gap-8 items-start'}>
           <Card className="overflow-hidden border-gray-200 shadow-sm">
-            <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-6 text-white">
+            <div className="bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] p-5 text-white sm:p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/15 mb-4">
                 <UserCircle2 className="h-6 w-6" />
               </div>
-              <h3 className="text-2xl font-bold">
+              <h3 className="text-xl font-bold sm:text-2xl">
                 {view === 'login' ? 'Acceso URP PrintStudio' : 'Cuenta URP PrintStudio'}
               </h3>
               <p className="mt-2 text-sm text-white/80">
@@ -245,7 +245,7 @@ export function AuthSection({ view }: AuthSectionProps) {
               </p>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {session ? (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-[#1b4332]/15 bg-[#1b4332]/5 p-4">
@@ -275,7 +275,7 @@ export function AuthSection({ view }: AuthSectionProps) {
                   <div className="grid grid-cols-2 rounded-lg bg-gray-100 p-1">
                     <button
                       type="button"
-                      className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                      className={`rounded-md px-2 py-2 text-sm font-semibold transition-colors sm:px-3 ${
                         mode === 'signin'
                           ? 'bg-white text-[#1b4332] shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
@@ -286,7 +286,7 @@ export function AuthSection({ view }: AuthSectionProps) {
                     </button>
                     <button
                       type="button"
-                      className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                      className={`rounded-md px-2 py-2 text-sm font-semibold transition-colors sm:px-3 ${
                         mode === 'signup'
                           ? 'bg-white text-[#1b4332] shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
@@ -453,7 +453,7 @@ export function AuthSection({ view }: AuthSectionProps) {
 
           {view === 'account' && (
           <Card className="overflow-hidden border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 p-6">
+            <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Mis pedidos</h3>
                 <p className="text-sm text-gray-600">Historial asociado a tu cuenta.</p>
@@ -463,17 +463,17 @@ export function AuthSection({ view }: AuthSectionProps) {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {session ? (
                 orders.length > 0 ? (
                   <div className="space-y-3">
                     {orders.slice(0, 5).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4">
+                      <div key={order.id} className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <div className="font-semibold text-gray-900">{order.order_code}</div>
                           <div className="text-sm text-gray-600">{order.status} · {order.payment_status}</div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right">
                           <div className="font-semibold text-[#1b4332]">S/. {order.total_amount.toFixed(2)}</div>
                           <div className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString()}</div>
                         </div>
@@ -481,7 +481,7 @@ export function AuthSection({ view }: AuthSectionProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center sm:p-8">
                     <PackageCheck className="mx-auto mb-3 h-8 w-8 text-gray-400" />
                     <div className="font-semibold text-gray-900">Aún no tienes pedidos</div>
                     <p className="mt-1 text-sm text-gray-600">
@@ -490,7 +490,7 @@ export function AuthSection({ view }: AuthSectionProps) {
                   </div>
                 )
               ) : (
-                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center sm:p-8">
                   <Mail className="mx-auto mb-3 h-8 w-8 text-gray-400" />
                   <div className="font-semibold text-gray-900">Inicia sesión para ver tus pedidos</div>
                   <p className="mt-1 text-sm text-gray-600">

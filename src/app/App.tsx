@@ -11,7 +11,7 @@ import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { CartProvider } from './cart/CartContext';
 import type { Product } from '@/types/database';
-import { getCurrentSession, onAuthStateChange } from '@/services/auth';
+import { readCustomizationDraft } from './utils/customizationDraft';
 
 function ScrollToHash() {
   const location = useLocation();
@@ -32,6 +32,13 @@ function ScrollToHash() {
 
 function HomePage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    const draft = readCustomizationDraft();
+    if (draft?.product) {
+      setSelectedProduct(draft.product);
+    }
+  }, []);
 
   return (
     <>
@@ -67,49 +74,10 @@ function WebsiteShell() {
   );
 }
 
-function AuthGate() {
-  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'guest'>('loading');
-
-  useEffect(() => {
-    let isActive = true;
-
-    getCurrentSession()
-      .then((session) => {
-        if (isActive) setAuthState(session ? 'authenticated' : 'guest');
-      })
-      .catch(() => {
-        if (isActive) setAuthState('guest');
-      });
-
-    const unsubscribe = onAuthStateChange((session) => {
-      if (isActive) setAuthState(session ? 'authenticated' : 'guest');
-    });
-
-    return () => {
-      isActive = false;
-      unsubscribe();
-    };
-  }, []);
-
-  if (authState === 'loading') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-600">
-        Cargando...
-      </div>
-    );
-  }
-
-  if (authState === 'guest') {
-    return <AuthSection view="login" />;
-  }
-
-  return <WebsiteShell />;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthGate />
+      <WebsiteShell />
     </BrowserRouter>
   );
 }

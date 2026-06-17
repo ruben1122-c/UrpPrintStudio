@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router';
 import { CheckCircle2, Download, ShoppingBag, SlidersHorizontal, Sparkles, Upload, XCircle } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -7,6 +9,13 @@ import { Label } from './ui/label';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useCart } from '../cart/CartContext';
 import { renderProductDesign } from '../utils/renderProductDesign';
+import {
+  clearCustomizationDraft,
+  readCustomizationDraft,
+  saveCustomizationDraft,
+  type CustomizationDraftAction,
+} from '../utils/customizationDraft';
+import { getCurrentSession, onAuthStateChange } from '@/services/auth';
 import { getFirstActiveProduct, getFirstTemplateForProduct, getProductBySlug } from '@/services/products';
 import type { Product, Template } from '@/types/database';
 import { ProductPreview } from './ProductPreview';
@@ -141,18 +150,18 @@ function ProductOptionsBox({
   const hasSelectableOptions = hasExactSouvenirs || hasProductOptions;
 
   return (
-    <div className="rounded-xl border border-emerald-900/15 bg-emerald-50/40 p-4 shadow-sm space-y-5">
+    <div className="space-y-5 rounded-xl border border-emerald-900/15 bg-emerald-50/40 p-4 shadow-sm">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-emerald-900 shadow-sm">
           <SlidersHorizontal className="h-4 w-4" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h4 className="font-bold text-gray-900">Opciones del producto</h4>
           <p className="mt-1 text-sm text-gray-600">
             Elegí la configuración específica disponible para {product.name}.
           </p>
           {labeledOptionsSummary && (
-            <p className="mt-2 text-xs font-medium text-emerald-900">Selección: {labeledOptionsSummary}</p>
+            <p className="mt-2 break-words text-xs font-medium text-emerald-900">Selección: {labeledOptionsSummary}</p>
           )}
         </div>
       </div>
@@ -176,8 +185,8 @@ function ProductOptionsBox({
                 aria-pressed={exactSouvenir === souvenir}
                 className={
                   exactSouvenir === souvenir
-                    ? 'bg-emerald-900 hover:bg-emerald-800'
-                    : 'bg-white'
+                    ? 'h-auto min-h-9 whitespace-normal bg-emerald-900 hover:bg-emerald-800'
+                    : 'h-auto min-h-9 whitespace-normal bg-white'
                 }
                 onClick={() => onExactSouvenirChange(souvenir)}
               >
@@ -206,8 +215,8 @@ function ProductOptionsBox({
                       aria-pressed={isSelected}
                       className={
                         isSelected
-                          ? 'bg-emerald-900 hover:bg-emerald-800'
-                          : 'bg-white'
+                          ? 'h-auto min-h-9 whitespace-normal bg-emerald-900 hover:bg-emerald-800'
+                          : 'h-auto min-h-9 whitespace-normal bg-white'
                       }
                       onClick={() => onProductOptionChange(option.key, value)}
                     >
@@ -256,6 +265,7 @@ function validateField(name: FieldName, value: string): string | null {
 }
 
 export function CustomizationSection({ selectedProduct }: CustomizationSectionProps) {
+  const navigate = useNavigate();
   const { addItem } = useCart();
   const [customData, setCustomData] = useState({
     nombre: '',
@@ -272,6 +282,8 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
   const [isDownloading, setIsDownloading] = useState(false);
   const [exactSouvenir, setExactSouvenir] = useState('');
   const [productOptions, setProductOptions] = useState<Record<string, string>>({});
+  const [session, setSession] = useState<Session | null>(null);
+  const [restoredDraftSlug, setRestoredDraftSlug] = useState<string | null>(null);
 
   /**
    * Active template loaded from Supabase when selectedProduct changes.
@@ -288,6 +300,14 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
 
   const customizationConfig = getCustomizationConfig(selectedProduct?.slug);
   const selectedOptionsSummary = formatOptions(productOptions);
+
+  useEffect(() => {
+    getCurrentSession()
+      .then(setSession)
+      .catch(() => setSession(null));
+
+    return onAuthStateChange(setSession);
+  }, []);
 
   // Reset config and load template when selected product changes
   useEffect(() => {
@@ -314,6 +334,26 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProduct?.slug]);
+
+  useEffect(() => {
+    if (!selectedProduct || restoredDraftSlug === selectedProduct.slug) return;
+
+    const draft = readCustomizationDraft();
+    if (!draft?.product || draft.product.slug !== selectedProduct.slug) return;
+
+    setCustomData(draft.data);
+    setExactSouvenir(draft.exactSouvenir);
+    setProductOptions(draft.productOptions);
+    setRestoredDraftSlug(selectedProduct.slug);
+
+    if (draft.pendingAction) {
+      setSubmitMessage(
+        draft.pendingAction === 'download'
+          ? 'SesiÃ³n iniciada. Puedes descargar tu diseÃ±o.'
+          : 'SesiÃ³n iniciada. Puedes agregar tu diseÃ±o al carrito.',
+      );
+    }
+  }, [restoredDraftSlug, selectedProduct]);
 
   // Campos que el usuario ya interactuó (blur) → mostramos validación visual
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -362,12 +402,39 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     }
   };
 
+  const requestLoginForAction = (pendingAction: CustomizationDraftAction) => {
+    saveCustomizationDraft({
+      product: selectedProduct,
+      data: customData,
+      exactSouvenir,
+      productOptions,
+      pendingAction,
+    });
+    navigate(`/login?next=${encodeURIComponent('/#personalizar')}`);
+  };
+
+  const ensureAuthenticated = async (pendingAction: CustomizationDraftAction) => {
+    const currentSession = session ?? await getCurrentSession().catch(() => null);
+
+    if (currentSession) {
+      setSession(currentSession);
+      return true;
+    }
+
+    requestLoginForAction(pendingAction);
+    return false;
+  };
+
   const handleAddToCart = async () => {
     setSubmitMessage(null);
     setSubmitError(null);
 
     if (!customData.nombre.trim() || !customData.email.trim()) {
       setSubmitError('Completa tu nombre y correo para agregar al carrito.');
+      return;
+    }
+
+    if (!await ensureAuthenticated('cart')) {
       return;
     }
 
@@ -430,6 +497,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       });
 
       setSubmitMessage('Producto agregado al carrito.');
+      clearCustomizationDraft();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo agregar al carrito.';
       setSubmitError(message);
@@ -439,6 +507,13 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
   };
 
   const handleDownloadDesign = async () => {
+    setSubmitMessage(null);
+    setSubmitError(null);
+
+    if (!await ensureAuthenticated('download')) {
+      return;
+    }
+
     setIsDownloading(true);
     try {
       const dataUrl = await renderProductDesign({
@@ -460,6 +535,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       link.download = filename;
       link.href = dataUrl;
       link.click();
+      clearCustomizationDraft();
     } catch (error) {
       console.error('Error al descargar el diseño:', error);
     } finally {
@@ -484,10 +560,10 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
   };
 
   return (
-    <section id="personalizar" className="py-20 bg-white">
+    <section id="personalizar" className="bg-white py-14 sm:py-16 lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="mb-10 text-center sm:mb-12">
           <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
             <Sparkles className="w-4 h-4 text-[#1b4332]" />
             <span className="text-sm font-semibold text-[#1b4332]">Editor en tiempo real</span>
@@ -496,7 +572,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
             Personaliza tu Diseño
           </h2>
           {selectedProduct ? (
-            <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm">
+            <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5">
               {selectedProduct.image_url && (
                 <ImageWithFallback
                   src={selectedProduct.image_url}
@@ -504,33 +580,33 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                   className="w-12 h-12 rounded-lg object-cover"
                 />
               )}
-              <div className="text-left">
+              <div className="min-w-0 text-left">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-[#1b4332]" />
-                  <span className="font-semibold text-gray-900">{selectedProduct.name}</span>
+                  <span className="break-words font-semibold text-gray-900">{selectedProduct.name}</span>
                 </div>
                 <span className="text-sm text-[#1b4332] font-medium">
                   Desde S/. {Number(selectedProduct.base_price).toFixed(0)}
                 </span>
               </div>
               {isLoadingTemplate && (
-                <span className="text-xs text-gray-400 animate-pulse ml-2">cargando template…</span>
+                <span className="animate-pulse text-xs text-gray-400">cargando template…</span>
               )}
             </div>
           ) : (
-            <p className="text-lg text-gray-500">
+            <p className="text-base text-gray-500 sm:text-lg">
               👆 Selecciona un producto en la sección de arriba para empezar a personalizar
             </p>
           )}
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid gap-5 lg:grid-cols-2 lg:gap-8">
           {/* Form Section */}
-          <Card className="p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          <Card className="min-w-0 p-4 sm:p-6 lg:p-8">
+            <h3 className="mb-5 text-xl font-bold text-gray-900 sm:mb-6 sm:text-2xl">
               Información del diseño
             </h3>
-            <div className="space-y-6">
+            <div className="space-y-5 sm:space-y-6">
               {selectedProduct && customizationConfig && (
                 <ProductOptionsBox
                   config={customizationConfig}
@@ -626,7 +702,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                 )}
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="telefono">Teléfono</Label>
                   <div className="relative">
@@ -716,7 +792,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                 <div className="mt-2">
                   <label
                     htmlFor="foto"
-                    className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-lg appearance-none cursor-pointer hover:border-[#1b4332] focus:outline-none"
+                    className="flex h-28 w-full cursor-pointer appearance-none items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 text-center transition hover:border-[#1b4332] focus:outline-none sm:h-32"
                   >
                     {customData.foto ? (
                       <img
@@ -744,12 +820,12 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
               </div>
 
               {/* Actions */}
-              <div className="pt-4 space-y-3">
+              <div className="space-y-3 pt-3 sm:pt-4">
                 <Button
                   className={
                     isDownloadValid
-                      ? 'w-full bg-[#1b4332] hover:bg-[#2d6a4f]'
-                      : 'w-full bg-gray-300 text-gray-500'
+                      ? 'h-auto min-h-10 w-full whitespace-normal bg-[#1b4332] hover:bg-[#2d6a4f]'
+                      : 'h-auto min-h-10 w-full whitespace-normal bg-gray-300 text-gray-500'
                   }
                   onClick={handleDownloadDesign}
                   disabled={isDownloading || !isDownloadValid}
@@ -760,8 +836,8 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                 <Button
                   className={
                     isOrderValid
-                      ? 'w-full bg-[#1b4332] hover:bg-[#2d6a4f]'
-                      : 'w-full bg-gray-300 text-gray-500'
+                      ? 'h-auto min-h-10 w-full whitespace-normal bg-[#1b4332] hover:bg-[#2d6a4f]'
+                      : 'h-auto min-h-10 w-full whitespace-normal bg-gray-300 text-gray-500'
                   }
                   disabled={isSubmitting || !isOrderValid}
                   onClick={handleAddToCart}
@@ -770,8 +846,8 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                   {isSubmitting ? 'Agregando...' : 'Agregar al carrito'}
                 </Button>
                 {submitMessage && (
-                  <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-                    <CheckCircle2 className="h-4 w-4" />
+                  <div className="flex items-start gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     {submitMessage}
                   </div>
                 )}
@@ -785,11 +861,11 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
           </Card>
 
           {/* Preview Section */}
-          <Card className="p-8 bg-gradient-to-br from-gray-50 to-gray-100">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          <Card className="min-w-0 overflow-visible bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+            <h3 className="mb-5 text-xl font-bold text-gray-900 sm:mb-6 sm:text-2xl">
               Vista previa
             </h3>
-            <div className="flex justify-center">
+            <div className="flex min-w-0 justify-center">
               <ProductPreview
                 previewRef={previewRef}
                 product={selectedProduct}
@@ -804,11 +880,11 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                 productOptions={productOptions}
               />
             </div>
-            <p className="text-sm text-gray-500 mt-4 text-center">
+            <p className="mt-4 text-center text-sm text-gray-500">
               ✨ El diseño se actualiza automáticamente mientras escribes
             </p>
             {selectedOptionsSummary && (
-              <p className="text-xs text-center text-gray-400 mt-1">{selectedOptionsSummary}</p>
+              <p className="mt-1 break-words text-center text-xs text-gray-400">{selectedOptionsSummary}</p>
             )}
           </Card>
         </div>

@@ -222,15 +222,15 @@ export function CartPanel({ className, label, autoOpenFromCheckout = true }: Car
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
+      <SheetContent className="!w-full max-w-none gap-0 sm:!max-w-md">
+        <SheetHeader className="border-b border-gray-100 pr-10">
           <SheetTitle>Carrito</SheetTitle>
           <SheetDescription>Revisa tus souvenirs y finaliza un solo pedido.</SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="min-h-0 flex-1 px-4">
+        <ScrollArea className="min-h-0 flex-1 px-3 py-4 sm:px-4">
           {items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center sm:p-8">
               <ShoppingCart className="mx-auto mb-3 h-8 w-8 text-gray-400" />
               <div className="font-semibold text-gray-900">Tu carrito está vacío</div>
               <p className="mt-1 text-sm text-gray-500">
@@ -246,7 +246,7 @@ export function CartPanel({ className, label, autoOpenFromCheckout = true }: Car
                 return (
                   <div key={item.id} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                     <div className="flex gap-3">
-                      <div className="h-16 w-16 overflow-hidden rounded-md bg-gray-100">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-gray-100">
                         {item.productImageUrl ? (
                           <ImageWithFallback
                             src={item.productImageUrl}
@@ -261,18 +261,18 @@ export function CartPanel({ className, label, autoOpenFromCheckout = true }: Car
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-gray-900">{item.productName}</div>
+                        <div className="break-words font-semibold text-gray-900">{item.productName}</div>
                         {item.exactSouvenir && (
                           <div className="text-sm text-[#1b4332]">{item.exactSouvenir}</div>
                         )}
-                        {options && <div className="mt-1 text-xs text-gray-500">{options}</div>}
+                        {options && <div className="mt-1 break-words text-xs text-gray-500">{options}</div>}
                         <div className="mt-2 text-sm font-medium text-gray-900">
                           {formatMoney(item.unitPrice)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between">
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
                         <Button
                           type="button"
@@ -298,7 +298,7 @@ export function CartPanel({ className, label, autoOpenFromCheckout = true }: Car
                         type="button"
                         size="sm"
                         variant="ghost"
-                        className="text-red-600 hover:text-red-700"
+                        className="h-auto min-h-9 w-full whitespace-normal text-red-600 hover:text-red-700 sm:w-auto"
                         onClick={() => removeItem(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -349,7 +349,7 @@ export function CartPanel({ className, label, autoOpenFromCheckout = true }: Car
           )}
         </ScrollArea>
 
-        <SheetFooter>
+        <SheetFooter className="border-t border-gray-100 bg-white">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Subtotal</span>
             <span className="text-lg font-bold text-gray-900">{formatMoney(subtotal)}</span>

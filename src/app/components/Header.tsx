@@ -31,7 +31,7 @@ export function Header() {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex h-16 items-center justify-between gap-3">
           {/* Logo */}
           <Link
             to="/"
@@ -49,12 +49,12 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center gap-4 lg:gap-8">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className="text-gray-700 hover:text-[#1b4332] transition-colors"
+                className="whitespace-nowrap text-sm text-gray-700 transition-colors hover:text-[#1b4332] lg:text-base"
               >
                 {item.name}
               </Link>
@@ -87,12 +87,12 @@ export function Header() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 space-y-3">
+          <div className="md:hidden space-y-3 border-t border-gray-100 py-4">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className="block py-2 text-gray-700 hover:text-[#1b4332] transition-colors"
+                className="block rounded-md px-2 py-2 text-gray-700 transition-colors hover:bg-[#1b4332]/5 hover:text-[#1b4332]"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.name}
