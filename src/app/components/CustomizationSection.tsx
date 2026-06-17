@@ -9,6 +9,7 @@ import { Label } from './ui/label';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useCart } from '../cart/CartContext';
 import { renderProductDesign } from '../utils/renderProductDesign';
+import { getPreviewCanvasDataUrl } from '../utils/previewCanvasCapture';
 import {
   clearCustomizationDraft,
   readCustomizationDraft,
@@ -56,7 +57,7 @@ const PRODUCT_CUSTOMIZATIONS: Record<string, ProductCustomizationConfig> = {
   camisetas: {
     exactSouvenirs: [],
     options: [
-      { key: 'tipo', label: 'Tipo de polo', values: ['Clásico', 'Oversize'] },
+      { key: 'tipo', label: 'Tipo de polo', values: ['Clásico'] },
       { key: 'talla', label: 'Talla', values: ['S', 'M', 'L', 'XL'] },
     ],
   },
@@ -516,7 +517,10 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
 
     setIsDownloading(true);
     try {
-      const dataUrl = await renderProductDesign({
+      const previewCanvasDataUrl = selectedProduct?.slug === 'camisetas'
+        ? getPreviewCanvasDataUrl(previewRef.current)
+        : null;
+      const dataUrl = previewCanvasDataUrl ?? await renderProductDesign({
         product: selectedProduct,
         template: activeTemplate,
         data: {

@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { Component, lazy, Suspense, type ReactNode, type RefObject } from 'react';
 import type { Product, Template } from '@/types/database';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
@@ -22,6 +22,29 @@ export type ProductPreviewProps = {
 };
 
 type ShirtColor = 'blanco' | 'negro' | 'verde';
+
+const Polo3DPreview = lazy(() =>
+  import('./Polo3DPreview').then((module) => ({ default: module.Polo3DPreview })),
+);
+
+class PreviewErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
 
 const SHIRT_MOCKUPS: Record<ShirtColor, string> = {
   blanco: '/mockups/polos/polo-blanco-espalda.png',
@@ -215,6 +238,39 @@ function ShirtPreview({
 
       <ProductFooter product={product} optionsSummary={optionsSummary} />
     </div>
+  );
+}
+
+function Shirt3DPreview({
+  product,
+  data,
+  optionsSummary,
+  productOptions,
+}: {
+  product: Product | null;
+  data: PreviewData;
+  optionsSummary: string;
+  productOptions: Record<string, string>;
+}) {
+  const fallback = (
+    <ShirtPreview
+      product={product}
+      data={data}
+      souvenir=""
+      optionsSummary={optionsSummary}
+      productOptions={productOptions}
+    />
+  );
+
+  return (
+    <PreviewErrorBoundary fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <div className="flex w-full flex-col items-center">
+          <Polo3DPreview data={data} />
+          <ProductFooter product={product} optionsSummary={optionsSummary} />
+        </div>
+      </Suspense>
+    </PreviewErrorBoundary>
   );
 }
 
@@ -591,10 +647,9 @@ export function ProductPreview({
         {!product ? (
           <EmptyPreview />
         ) : slug === 'camisetas' ? (
-          <ShirtPreview
+          <Shirt3DPreview
             product={product}
             data={data}
-            souvenir={exactSouvenir}
             optionsSummary={optionsSummary}
             productOptions={productOptions}
           />
