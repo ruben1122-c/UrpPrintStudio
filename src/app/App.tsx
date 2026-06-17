@@ -32,14 +32,25 @@ function ScrollToHash() {
 }
 
 function HomePage() {
-  const navigate = useNavigate();
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const handleSelectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    window.requestAnimationFrame(() => {
+      document.getElementById('personalizar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   return (
     <>
-      <HeroSection />
+      <HeroSection onCtaClick={() => document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })} />
       <ProductsSection
-        onSelectProduct={(product) => navigate(`/personalizar/${product.slug}`)}
+        selectedProduct={selectedProduct}
+        onSelectProduct={handleSelectProduct}
       />
+      {selectedProduct && (
+        <CustomizationSection selectedProduct={selectedProduct} />
+      )}
       <BenefitsSection />
       <HowItWorksSection />
       <ContactSection />

@@ -333,7 +333,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       // Fallback product (slug-based id from static list) — no template lookup
       setActiveTemplate(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProduct?.slug]);
 
   useEffect(() => {
@@ -350,8 +350,8 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     if (draft.pendingAction) {
       setSubmitMessage(
         draft.pendingAction === 'download'
-          ? 'SesiÃ³n iniciada. Puedes descargar tu diseÃ±o.'
-          : 'SesiÃ³n iniciada. Puedes agregar tu diseÃ±o al carrito.',
+          ? 'Sesión iniciada. Puedes descargar tu diseño.'
+          : 'Sesión iniciada. Puedes agregar tu diseño al carrito.',
       );
     }
   }, [restoredDraftSlug, selectedProduct]);
@@ -568,9 +568,9 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
     return (
       <section id="personalizar" className="bg-white py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#1b4332]/10 px-4 py-2">
-            <Sparkles className="h-4 w-4 text-[#1b4332]" />
-            <span className="text-sm font-semibold text-[#1b4332]">Editor en tiempo real</span>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">Editor en tiempo real</span>
           </div>
           <Card className="p-6 sm:p-8">
             <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -581,7 +581,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
             </p>
             <Button
               type="button"
-              className="mt-6 h-auto min-h-10 whitespace-normal bg-[#1b4332] px-6 hover:bg-[#2d6a4f]"
+              className="mt-6 h-auto min-h-10 whitespace-normal bg-primary hover:bg-primary/90 px-6"
               onClick={() => navigate('/#productos')}
             >
               Ver productos
@@ -597,9 +597,9 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-10 text-center sm:mb-12">
-          <div className="inline-flex items-center gap-2 bg-[#1b4332]/10 px-4 py-2 rounded-full mb-4">
-            <Sparkles className="w-4 h-4 text-[#1b4332]" />
-            <span className="text-sm font-semibold text-[#1b4332]">Editor en tiempo real</span>
+          <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">Editor en tiempo real</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Personaliza tu Diseño
@@ -615,10 +615,10 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
               )}
               <div className="min-w-0 text-left">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-[#1b4332]" />
+                  <ShoppingBag className="w-4 h-4 text-primary" />
                   <span className="break-words font-semibold text-gray-900">{selectedProduct.name}</span>
                 </div>
-                <span className="text-sm text-[#1b4332] font-medium">
+                <span className="text-sm text-primary font-medium">
                   Desde S/. {Number(selectedProduct.base_price).toFixed(0)}
                 </span>
               </div>
@@ -633,9 +633,9 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
           )}
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2 lg:gap-8">
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Form Section */}
-          <Card className="min-w-0 p-4 sm:p-6 lg:p-8">
+          <Card className="min-w-0 p-4 sm:p-6 lg:p-8 order-2 lg:order-1">
             <h3 className="mb-5 text-xl font-bold text-gray-900 sm:mb-6 sm:text-2xl">
               Información del diseño
             </h3>
@@ -825,7 +825,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
                 <div className="mt-2">
                   <label
                     htmlFor="foto"
-                    className="flex h-28 w-full cursor-pointer appearance-none items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 text-center transition hover:border-[#1b4332] focus:outline-none sm:h-32"
+                    className="flex h-28 w-full cursor-pointer appearance-none items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 text-center transition hover:border-primary focus:outline-none sm:h-32"
                   >
                     {customData.foto ? (
                       <img
@@ -855,22 +855,23 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
               {/* Actions */}
               <div className="space-y-3 pt-3 sm:pt-4">
                 <Button
+                  variant="outline"
                   className={
                     isDownloadValid
-                      ? 'h-auto min-h-10 w-full whitespace-normal bg-[#1b4332] hover:bg-[#2d6a4f]'
-                      : 'h-auto min-h-10 w-full whitespace-normal bg-gray-300 text-gray-500'
+                      ? 'h-auto min-h-10 w-full whitespace-normal border border-primary text-primary hover:bg-primary/5 hover:text-primary'
+                      : 'h-auto min-h-10 w-full whitespace-normal border border-gray-200 text-gray-400 bg-transparent'
                   }
                   onClick={handleDownloadDesign}
                   disabled={isDownloading || !isDownloadValid}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  {isDownloading ? 'Generando imagen...' : 'Descargar diseño'}
+                  {isDownloading ? 'Generando...' : 'Descargar diseño'}
                 </Button>
                 <Button
                   className={
                     isOrderValid
-                      ? 'h-auto min-h-10 w-full whitespace-normal bg-[#1b4332] hover:bg-[#2d6a4f]'
-                      : 'h-auto min-h-10 w-full whitespace-normal bg-gray-300 text-gray-500'
+                      ? 'h-auto min-h-10 w-full whitespace-normal bg-primary hover:bg-primary/95 text-white'
+                      : 'h-auto min-h-10 w-full whitespace-normal bg-gray-200 text-gray-400'
                   }
                   disabled={isSubmitting || !isOrderValid}
                   onClick={handleAddToCart}
@@ -894,7 +895,7 @@ export function CustomizationSection({ selectedProduct }: CustomizationSectionPr
           </Card>
 
           {/* Preview Section */}
-          <Card className="min-w-0 overflow-visible bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+          <Card className="min-w-0 overflow-visible bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8 order-1 lg:order-2">
             <h3 className="mb-5 text-xl font-bold text-gray-900 sm:mb-6 sm:text-2xl">
               Vista previa
             </h3>
