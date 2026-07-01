@@ -7,7 +7,7 @@ import { supabaseAdmin } from '../lib/supabase.js';
 export const checkoutRouter = Router();
 
 const generateOrderCode = () => {
-  const segment = randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase();
+  const segment = randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
   return `URP-${segment}`;
 };
 
