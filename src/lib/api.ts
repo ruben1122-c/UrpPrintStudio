@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
-const apiUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+const defaultApiUrl = import.meta.env.PROD ? '' : 'http://localhost:4000';
+const apiUrl = (import.meta.env.VITE_API_URL ?? defaultApiUrl).replace(/\/$/, '');
 
 type ApiOptions = {
   method?: string;
