@@ -91,13 +91,23 @@ const assertJwtRole = (value: string, expectedRole: string, key: string) => {
 
 const supabasePublishableKey = requiredSupabasePublishableKey();
 
+const configuredCorsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const vercelCorsOrigins = [
+  process.env.VERCEL_URL,
+  process.env.VERCEL_BRANCH_URL,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL,
+]
+  .filter((hostname): hostname is string => Boolean(hostname))
+  .map((hostname) => `https://${hostname.replace(/^https?:\/\//, '').replace(/\/$/, '')}`);
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  corsOrigin: [...new Set([...configuredCorsOrigins, ...vercelCorsOrigins])],
   supabaseUrl: requiredSupabaseUrl(),
   supabaseServiceRoleKey: requiredSupabaseServiceRoleKey(supabasePublishableKey),
   supabasePublishableKey,
